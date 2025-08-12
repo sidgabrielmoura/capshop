@@ -22,7 +22,7 @@ export function Sidebar() {
     },
     {
       name: "Configuração da IA",
-      href: "/configuracao-ia",
+      href: "/engineAi",
       icon: Settings,
     },
   ]
@@ -36,7 +36,7 @@ export function Sidebar() {
       </div>
 
       <div className="mb-8">
-        <Link href="/novo-produto" onClick={() => setIsMobileOpen(false)}>
+        <Link href="/registerProduct" onClick={() => setIsMobileOpen(false)}>
           <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <Plus className="w-4 h-4 mr-2" />
             Novo Produto
@@ -112,7 +112,7 @@ export function Sidebar() {
         </SheetTrigger>
         <SheetContent 
           side="left" 
-          className="w-64 p-6 bg-gradient-to-br from-pink-50/95 via-purple-50/95 to-blue-50/95 backdrop-blur-xl border-white/20"
+          className="w-64 p-6 bg-gradient-to-br from-pink-50/95 via-purple-50/95 to-blue-50/95 backdrop-blur-xl border-white/20 glass-effect-clean"
         >
           <SidebarContent />
         </SheetContent>

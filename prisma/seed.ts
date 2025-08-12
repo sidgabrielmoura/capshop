@@ -1,5 +1,5 @@
 // prisma/seed.ts
-import { PrismaClient } from '@/app/lib/generated/prisma/client'
+import { PrismaClient } from "@/lib/generated/prisma"
 
 const prisma = new PrismaClient()
 
@@ -18,7 +18,7 @@ async function main() {
     const proPlan = await prisma.plan.create({
         data: {
             name: 'Pro',
-            priceCents: 2990, // R$29,90
+            priceCents: 2990,
             features: ['IA para nome', 'IA para descrição', 'Prioridade no suporte']
         }
     })
@@ -57,6 +57,8 @@ async function main() {
         data: {
             name: 'Caneca Estampada',
             description: 'Caneca de cerâmica personalizada com sua arte.',
+            price: 39.90,
+            status: 'active', // ou 'draft'
             userId: userFree.id,
             images: {
                 create: [
@@ -66,13 +68,15 @@ async function main() {
                 ]
             }
         }
-    })
+    });
 
     // Produto do usuário PRO
     const produtoPro = await prisma.product.create({
         data: {
             name: 'Tênis Esportivo Turbo X',
             description: 'Tênis ideal para corrida e caminhadas longas.',
+            price: 199.99,
+            status: 'active', // ou 'draft'
             userId: userPro.id,
             images: {
                 create: [
@@ -82,7 +86,7 @@ async function main() {
                 ]
             }
         }
-    })
+    });
 
     // Conteúdo gerado por IA para o produto PRO
     await prisma.generatedContent.createMany({
