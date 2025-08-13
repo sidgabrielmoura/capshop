@@ -10,16 +10,14 @@ async function main() {
     const freePlan = await prisma.plan.create({
         data: {
             name: 'Free',
-            priceCents: 0,
-            features: ['Cadastrar produtos manualmente']
+            priceCents: 0
         }
     })
 
     const proPlan = await prisma.plan.create({
         data: {
             name: 'Pro',
-            priceCents: 2990,
-            features: ['IA para nome', 'IA para descrição', 'Prioridade no suporte']
+            priceCents: 2990
         }
     })
 
