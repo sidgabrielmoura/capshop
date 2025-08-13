@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { PricingModal } from "./pricingModal"
 import { cn } from "@/app/lib/utils"
+import { useSession } from "next-auth/react"
 
 export function Sidebar() {
   const pathname = usePathname()
   const [isPricingOpen, setIsPricingOpen] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const user = useSession().data?.user
 
   const navigation = [
     {
@@ -29,10 +31,12 @@ export function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      <div className="mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
           Capshop
         </h1>
+
+        {user?.subscription?.plan.name === "Pro" && <Sparkles className="w-5 h-5 text-amber-700 mr-2" />}
       </div>
 
       <div className="mb-8">
@@ -69,26 +73,38 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="mt-auto">
-        <div className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl">
-          <div className="flex items-center mb-2">
-            <Sparkles className="w-4 h-4 text-purple-600 mr-2" />
-            <span className="text-sm font-medium text-purple-700">IA Premium</span>
+      {user?.subscription?.plan.name !== "Pro" ? (
+        <div className="mt-auto">
+          <div className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl">
+            <div className="flex items-center mb-2">
+              <Sparkles className="w-4 h-4 text-purple-600 mr-2" />
+              <span className="text-sm font-medium text-purple-700">IA Premium</span>
+            </div>
+            <p className="text-xs text-gray-600 mb-3">Gere títulos e descrições automaticamente</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setIsPricingOpen(true)
+                setIsMobileOpen(false)
+              }}
+              className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
+            >
+              Fazer Upgrade
+            </Button>
           </div>
-          <p className="text-xs text-gray-600 mb-3">Gere títulos e descrições automaticamente</p>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setIsPricingOpen(true)
-              setIsMobileOpen(false)
-            }}
-            className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
-          >
-            Fazer Upgrade
-          </Button>
         </div>
-      </div>
+      ) : (
+        <div className="mt-auto">
+          <div className="p-4 bg-gradient-to-r from-amber-200/80 to-orange-300/60 rounded-xl">
+            <div className="flex items-center mb-2">
+              <Sparkles className="w-4 h-4 text-amber-700 mr-2" />
+              <span className="text-sm font-medium text-amber-700">IA Premium</span>
+            </div>
+            <p className="text-xs text-zinc-800 mb-3">Gere títulos e descrições automaticamente</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -110,8 +126,8 @@ export function Sidebar() {
             <Menu className="w-5 h-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent 
-          side="left" 
+        <SheetContent
+          side="left"
           className="w-64 p-6 bg-gradient-to-br from-pink-50/95 via-purple-50/95 to-blue-50/95 backdrop-blur-xl border-white/20 glass-effect-clean"
         >
           <SidebarContent />

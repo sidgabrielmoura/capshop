@@ -8,7 +8,6 @@ import {
     Edit,
     Copy,
     Trash2,
-    Eye,
     ExternalLink,
     ChevronLeft,
     ChevronRight,

@@ -115,7 +115,7 @@ export default function NewProductPage() {
 
   const selectedCategory = categories.find((cat) => cat.id === productData.category)
 
-  async function handleCreateProduct() {
+  async function handleCreateProduct(status?: "active" | "draft") {
     setLoadingRegisterProduct(true)
     const processedImages = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,6 +137,7 @@ export default function NewProductPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        status,
         name: productData.name,
         category: productData.category,
         specifications: specificationsArray,
@@ -151,6 +152,7 @@ export default function NewProductPage() {
 
     setLoadingRegisterProduct(false)
 
+    
     if (response.ok) {
       nextStep()
       return
@@ -241,7 +243,7 @@ export default function NewProductPage() {
       {/* Step Content */}
       <Card className="p-8 bg-white/60 backdrop-blur-sm border-white/30">
         {currentStep === 1 && (
-          <div className="text-center max-w-2xl mx-auto">
+          <div className="text-center w-full mx-auto">
             <div className="mb-6 lg:mb-8">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-3 lg:mb-4">
                 Adicione as Fotos
@@ -296,7 +298,7 @@ export default function NewProductPage() {
         )}
 
         {currentStep === 2 && (
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full mx-auto">
             <div className="text-center mb-6 lg:mb-8">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-3 lg:mb-4">
                 Escolha a Categoria
@@ -335,7 +337,7 @@ export default function NewProductPage() {
         )}
 
         {currentStep === 3 && (
-          <div className="max-w-2xl mx-auto">
+          <div className="w-full max-w-4xl mx-auto">
             <div className="text-center mb-6 lg:mb-8">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-3 lg:mb-4">
                 Nome do Produto
@@ -349,7 +351,7 @@ export default function NewProductPage() {
                   placeholder="Ex: Smartphone Galaxy Pro Max Ultra..."
                   value={productData.name}
                   onChange={(e) => setProductData((prev) => ({ ...prev, name: e.target.value }))}
-                  className="flex-1 h-12 lg:h-14 text-base lg:text-lg bg-white/70 border-white/50 focus:bg-white/90"
+                  className="flex-1 h-12 lg:h-14 text-base lg:text-md bg-white/70 border-white/50 focus:bg-white/90"
                 />
                 <Button
                   onClick={() => generateWithAI("name")}
@@ -369,7 +371,7 @@ export default function NewProductPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-purple-700 mb-1">Preview do título:</p>
-                      <p className="font-semibold text-gray-800 text-lg">{productData.name}</p>
+                      <p className="font-semibold text-gray-800 text-md">{productData.name}</p>
                     </div>
                   </div>
                 </Card>
@@ -389,7 +391,7 @@ export default function NewProductPage() {
         )}
 
         {currentStep === 4 && (
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-5xl w-full mx-auto">
             <div className="text-center mb-8">
               <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-4">Descrição do Produto</h2>
               <p className="text-gray-600 text-lg">Conte todos os detalhes e benefícios</p>
@@ -685,9 +687,9 @@ export default function NewProductPage() {
                     <h3 className="font-semibold text-gray-800 mb-4">Especificações</h3>
                     <div className="space-y-2 text-sm">
                       {Object.entries(productData.specifications).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-600">{key}:</span>
-                          <span className="font-medium">{value}</span>
+                        <div key={key} className="flex justify-between gap-2">
+                          <span className="text-gray-600 text-nowrap">{key}:</span>
+                          <span className="font-medium truncate">{value}</span>
                         </div>
                       ))}
                     </div>
@@ -741,22 +743,38 @@ export default function NewProductPage() {
             Anterior
           </Button>
 
-          <Button
-            onClick={currentStep !== 7 ? nextStep : handleCreateProduct}
-            disabled={
-              (currentStep === 1 && productData.images.length === 0) ||
-              (currentStep === 2 && !productData.category) ||
-              (currentStep === 3 && !productData.name) ||
-              (currentStep === 4 && !productData.description) ||
-              (currentStep === 6 && !productData.price) ||
-              loadingRegisterProduct
-            }
-            size="lg"
-            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8"
-          >
-            {currentStep === 7 ? "Criar Produto" : "Próximo"}
-            {loadingRegisterProduct ? <Loader className="w-4 h-4 ml-2 animate-spin" /> : <ArrowRight className="w-4 h-4 ml-2" />}
-          </Button>
+          <div className="flex gap-2 items-center">
+            {/* {currentStep === 7 && (
+              <Button
+                onClick={() => handleCreateProduct("draft")}
+                disabled={
+                  loadingRegisterProduct
+                }
+                size="lg"
+                className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 transition-all duration-200 text-white px-8 cursor-pointer"
+              >
+                Salvar como rascunho
+                <PenBox />
+              </Button>
+            )} */}
+
+            <Button
+              onClick={currentStep !== 7 ? nextStep : () => handleCreateProduct()}
+              disabled={
+                (currentStep === 1 && productData.images.length === 0) ||
+                (currentStep === 2 && !productData.category) ||
+                (currentStep === 3 && !productData.name) ||
+                (currentStep === 4 && !productData.description) ||
+                (currentStep === 6 && !productData.price) ||
+                loadingRegisterProduct
+              }
+              size="lg"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 cursor-pointer transition-all duration-200"
+            >
+              {currentStep === 7 ? "Criar Produto" : "Próximo"}
+              {loadingRegisterProduct ? <Loader className="w-4 h-4 ml-2 animate-spin" /> : <ArrowRight className="w-4 h-4 ml-2" />}
+            </Button>
+          </div>
         </div>
       )}
 

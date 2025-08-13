@@ -17,8 +17,7 @@ export function Navbar() {
   const session = useSession().data
 
   const user = {
-    ...session?.user,
-    isPro: true
+    ...session?.user
   }
 
   const handleLogout = async () => {
@@ -55,7 +54,7 @@ export function Navbar() {
           <SheetTrigger asChild>
             <Avatar className="w-8 h-8">
               <AvatarImage src={user?.image || ''} />
-              <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm">{user?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm">{user?.name?.split(' ')[0].split('')[0].toUpperCase()}</AvatarFallback>
             </Avatar>
           </SheetTrigger>
           <SheetContent className="py-1 px-3 bg-gradient-to-br from-pink-50/95 via-purple-50/95 to-blue-50/95 backdrop-blur-xl border-white/20 glass-effect-clean">
@@ -75,7 +74,7 @@ export function Navbar() {
             {/* User Profile Card */}
             {session ? (
               <div className="bg-white/60 backdrop-blur-sm border border-white/30 rounded-2xl p-4 mb-1 space-y-4">
-                {user.isPro ? (
+                {user.subscription?.plan.name === "Pro" ? (
                   <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 shadow-sm h-8 w-full">
                     <Crown className="w-4 h-4 mr-1" />
                     PRO
@@ -89,7 +88,7 @@ export function Navbar() {
                   <Avatar className="w-14 h-14 ring-2 ring-white/50">
                     <AvatarImage src={user?.image || ''} />
                     <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-lg font-semibold">
-                      {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {user?.name?.split(' ')[0].split('')[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
 
@@ -112,7 +111,7 @@ export function Navbar() {
             )}
 
             {/* Plan Status */}
-            {user.isPro && session ? (
+            {user.subscription?.plan.name === "Pro" && session ? (
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200/50 rounded-2xl p-5">
                 <div className="flex items-center mb-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mr-3">
@@ -167,7 +166,7 @@ export function Navbar() {
 
             {/* Menu Actions */}
             <div className="space-y-2 mb-6">
-              {user.isPro && session && (
+              {user.subscription?.plan.name === "Pro" && session && (
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-gray-700 bg-white/40 h-12 px-4 rounded-xl font-medium cursor-pointer"

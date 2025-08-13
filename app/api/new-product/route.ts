@@ -28,6 +28,7 @@ export async function POST(req: Request) {
 
     const product = await db.product.create({
       data: {
+        status: body.status || "active",
         name: body.name,
         category: body.category,
         specifications: body.specifications as string[],

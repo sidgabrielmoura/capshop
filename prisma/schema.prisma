@@ -86,9 +86,8 @@ model Image {
 
 model Plan {
   id            String         @id @default(uuid())
-  name          String         @unique
+  name          String         @default("Free")
   priceCents    Int
-  features      String[]
   subscriptions Subscription[]
 }
 

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Prisma } from "@/lib/generated/prisma"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface ProductsPageProps {
     products: Prisma.ProductGetPayload<{
@@ -20,6 +21,7 @@ interface ProductsPageProps {
 
 export default function ProductsPageComponent({ products }: ProductsPageProps) {
     const [favorites, setFavorites] = useState<number[]>([])
+    const [deletingProduct, setDeletingProduct] = useState<string[]>([])
     const router = useRouter()
 
     const toggleFavorite = (productId: number) => {
@@ -28,6 +30,39 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
 
     const navigateTo = (path: string) => {
         router.push(path)
+    }
+
+    const handleDeleteProduct = async (productId: string) => {
+        setDeletingProduct([...deletingProduct, productId])
+        try {
+            const response = await fetch('/api/delete-product', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: productId })
+            })
+
+            if (!response.ok) {
+                toast.error('erro ao deletar produto ou produto inexistente')
+                setTimeout(() => {
+                    setDeletingProduct([])
+                }, 1000)
+                return
+            }
+
+            toast.success('produto deletado com sucesso', {
+                action: {
+                    label: 'atualizar',
+                    onClick: () => {
+                        window.location.reload()
+                    }
+                }
+            })
+        } catch (error) {
+            console.log(error)
+            setTimeout(() => {
+                setDeletingProduct([])
+            }, 1000)
+        }
     }
 
     return (
@@ -43,7 +78,11 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                         {products.map((product, i) => (
                             <Card
                                 key={product.id}
-                                className="group overflow-hidden bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 p-0 pb-3"
+                                className={`
+                                    group overflow-hidden bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 
+                                    transition-all duration-300 hover:shadow-xl hover:-translate-y-1 p-0 pb-3
+                                    ${deletingProduct.includes(product.id) ? "opacity-50 pointer-events-none scale-95" : ""}
+                                `}
                             >
                                 <div className="relative">
                                     <Image
@@ -73,7 +112,7 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                                             <DropdownMenuContent>
                                                 <DropdownMenuItem>Editar</DropdownMenuItem>
                                                 <DropdownMenuItem>Duplicar</DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600">Excluir</DropdownMenuItem>
+                                                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => handleDeleteProduct(product.id)}>Excluir</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { PricingModal } from "@/components/pricingModal"
+import { useSession } from "next-auth/react"
 
 const niches = [
   { value: "moda", label: "Moda e Vestuário", icon: "👗" },
@@ -40,6 +41,7 @@ export default function AIConfigPage() {
     customInstructions: "",
     storeName: "",
   })
+  const user = useSession().data?.user
 
   const handleSave = () => {
     // Simular salvamento
@@ -68,11 +70,10 @@ export default function AIConfigPage() {
                 <button
                   key={niche.value}
                   onClick={() => setConfig((prev) => ({ ...prev, niche: niche.value }))}
-                  className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                    config.niche === niche.value
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${config.niche === niche.value
                       ? "border-purple-500 bg-purple-50"
                       : "border-gray-200 hover:border-purple-300 hover:bg-purple-25"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center">
                     <span className="text-2xl mr-3">{niche.icon}</span>
@@ -93,11 +94,10 @@ export default function AIConfigPage() {
                 <button
                   key={tone.value}
                   onClick={() => setConfig((prev) => ({ ...prev, tone: tone.value }))}
-                  className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                    config.tone === tone.value
+                  className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${config.tone === tone.value
                       ? "border-purple-500 bg-purple-50"
                       : "border-gray-200 hover:border-purple-300"
-                  }`}
+                    }`}
                 >
                   <div className="flex justify-between items-center">
                     <div>
@@ -189,16 +189,26 @@ export default function AIConfigPage() {
           </Card>
 
           {/* Upgrade Premium */}
-          <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
-            <div className="text-center">
-              <Sparkles className="w-8 h-8 text-yellow-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Premium</h3>
-              <p className="text-sm text-gray-600 mb-4">Desbloqueie todo o potencial da IA</p>
-              <Button onClick={() => setIsPricingOpen(true)} className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white">
-                Fazer Upgrade
-              </Button>
-            </div>
-          </Card>
+          {user?.subscription?.plan.name !== "Pro" ? (
+            <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+              <div className="text-center">
+                <Sparkles className="w-8 h-8 text-yellow-600 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Premium</h3>
+                <p className="text-sm text-gray-600 mb-4">Desbloqueie todo o potencial da IA</p>
+                <Button onClick={() => setIsPricingOpen(true)} className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white">
+                  Fazer Upgrade
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+              <div className="text-center">
+                <Sparkles className="w-8 h-8 text-yellow-600 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Você é Premium</h3>
+                <p className="text-sm text-gray-600 mb-4">Aproveite todo o potencial da IA</p>
+              </div>
+            </Card>
+          )}
         </div>
         <PricingModal isOpen={isPricingOpen} onClose={() => setIsPricingOpen(false)} trigger="config" />
       </div>
