@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { loadStripe } from "@stripe/stripe-js"
+import { Plan } from "@/interfaces"
 
 interface PricingModalProps {
   isOpen: boolean
@@ -13,12 +15,22 @@ interface PricingModalProps {
   trigger?: "ai-button" | "sidebar" | "config"
 }
 
+type SelectedPlan = {
+  price_id: string;
+  name: string;
+  price: string;
+  period: string;
+  price_number: number
+};
+
 const plans = [
   {
     id: "pay-per-use",
+    price_id: "price_1Rvt5fQCuTgWpGfkA4UlPm2w",
     name: "Por Uso",
     description: "Ideal para testes ocasionais",
     price: "R$ 2,99",
+    numberPrice: 2.99,
     period: "por geração",
     icon: Zap,
     color: "from-blue-500 to-cyan-500",
@@ -29,9 +41,11 @@ const plans = [
   },
   {
     id: "monthly",
+    price_id: "price_1RvsnuQCuTgWpGfkmAzW0Unn",
     name: "Premium Mensal",
     description: "Para vendedores ativos",
     price: "R$ 29,90",
+    numberPrice: 29.90,
     period: "por mês",
     icon: Crown,
     color: "from-purple-500 to-pink-500",
@@ -51,9 +65,11 @@ const plans = [
   },
   {
     id: "yearly",
+    price_id: "price_1Rvt6YQCuTgWpGfkTIYNBOTZ",
     name: "Premium Anual",
     description: "Melhor custo-benefício",
     price: "R$ 299,90",
+    numberPrice: 299.90,
     period: "por ano",
     originalPrice: "R$ 358,80",
     discount: "17% OFF",
@@ -74,22 +90,21 @@ const plans = [
   },
 ]
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+
 export function PricingModal({ isOpen, onClose, trigger = "ai-button" }: PricingModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const handlePurchase = async (planId: string) => {
+  const handlePurchase = async (planId: string, plan: Plan) => {
     setSelectedPlan(planId)
     setIsProcessing(true)
 
-    // Simular processamento de pagamento
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await HandleBuyPlan(planId, plan).then(() => {
+      setIsProcessing(false)
+      setSelectedPlan(null)
+    })
 
-    setIsProcessing(false)
-    setSelectedPlan(null)
-
-    // Simular sucesso
-    alert("Pagamento processado com sucesso! Bem-vindo ao Premium! 🎉")
     onClose()
   }
 
@@ -104,6 +119,30 @@ export function PricingModal({ isOpen, onClose, trigger = "ai-button" }: Pricing
       default:
         return "Escolha o plano ideal para você"
     }
+  }
+
+  const HandleBuyPlan = async (priceID: string, plan: Plan) => {
+    const planToStore: SelectedPlan = {
+      price_id: plan.price_id,
+      name: plan.name,
+      price: plan.price,
+      period: plan.period,
+      price_number: plan.numberPrice
+    }
+
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      body: JSON.stringify({ priceID }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json();
+    await stripePromise;
+    if (data) {
+      window.location.href = data.url
+      localStorage.setItem("selectedPlan", JSON.stringify(planToStore))
+    }
+
   }
 
   return (
@@ -136,10 +175,9 @@ export function PricingModal({ isOpen, onClose, trigger = "ai-button" }: Pricing
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-4 w-full">
           {plans.map((plan) => (
-            <div key={plan.id} className={`relative p-6 rounded-2xl border-2 transition-all duration-300 flex flex-col justify-between ${
-                plan.popular
-                  ? "border-purple-300 bg-white/80 shadow-xl scale-105"
-                  : "border-white/30 bg-white/60 hover:bg-white/70 hover:border-purple-200"
+            <div key={plan.id} className={`relative p-6 rounded-2xl border-2 transition-all duration-300 flex flex-col justify-between ${plan.popular
+              ? "border-purple-300 bg-white/80 shadow-xl scale-105"
+              : "border-white/30 bg-white/60 hover:bg-white/70 hover:border-purple-200"
               }`}
             >
               {plan.popular && (
@@ -196,13 +234,12 @@ export function PricingModal({ isOpen, onClose, trigger = "ai-button" }: Pricing
               </div>
 
               <Button
-                onClick={() => handlePurchase(plan.id)}
+                onClick={() => handlePurchase(plan.price_id, plan)}
                 disabled={isProcessing}
-                className={`w-full ${
-                  plan.popular
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-200"
-                    : "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 transition-all duration-200"
-                } text-white font-medium py-3 cursor-pointer`}
+                className={`w-full ${plan.popular
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-200"
+                  : "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 transition-all duration-200"
+                  } text-white font-medium py-3 cursor-pointer`}
               >
                 {isProcessing && selectedPlan === plan.id ? (
                   <div className="flex items-center">
