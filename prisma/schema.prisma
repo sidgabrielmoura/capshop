@@ -19,6 +19,7 @@ model User {
   accounts      Account[]
   products      Product[]
   sessions      Session[]
+  coins         Coins[]
   subscription  Subscription?
 }
 
@@ -89,6 +90,15 @@ model Plan {
   name          String         @default("Free")
   priceCents    Int
   subscriptions Subscription[]
+}
+
+model Coins {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  amount    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Subscription {

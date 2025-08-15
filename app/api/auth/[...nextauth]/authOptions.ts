@@ -34,13 +34,19 @@ export const authOptions = {
           }
         });
 
+        const coins = await db.coins.findUnique({
+          where: { userId: user.id },
+          select: { amount: true }
+        })
+
         session.user = {
           ...session.user,
-          ...userData
-        };
+          ...userData,
+          ...coins
+        }
       }
       return session;
     },
-    secret: process.env.NEXTAUTH_SECRET
   },
+  secret: process.env.NEXTAUTH_SECRET
 }

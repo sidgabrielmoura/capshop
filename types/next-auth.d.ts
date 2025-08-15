@@ -15,6 +15,7 @@ declare module "next-auth" {
         endsAt?: string | null;
         startedAt?: string;
       };
+      amount?: number | null;
     };
   }
 }

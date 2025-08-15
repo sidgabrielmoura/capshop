@@ -1,6 +1,6 @@
 "use client"
 
-import { Crown, LogIn, LogOut, Search, Sparkles, User, X } from "lucide-react"
+import { Coins, Crown, LogIn, LogOut, Search, Sparkles, User, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationSheet } from "./notificationsSheet"
@@ -9,15 +9,17 @@ import { PricingModal } from "./pricingModal"
 import { useState } from "react"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
-import { signIn, useSession, signOut } from "next-auth/react"
+import { signIn, signOut, useSession } from "next-auth/react"
+import { CoinsModal } from "./coinsModal"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isPricingOpen, setIsPricingOpen] = useState(false)
+  const [isCoinsModalOpen, setIsCoinsModalOpen] = useState(false)
   const session = useSession().data
 
   const user = {
-    ...session?.user
+    ...session?.user,
   }
 
   const handleLogout = async () => {
@@ -48,6 +50,16 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center space-x-4">
+        <Button
+          onClick={() => setIsCoinsModalOpen(true)}
+          size={"sm"}
+          className="px-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 max-md:hidden
+          hover:from-yellow-500 hover:to-orange-600 cursor-pointer text-zinc-50"
+        >
+          <span>{user.amount || "0"}</span>
+          <Coins />
+        </Button>
+
         <NotificationSheet />
 
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -93,9 +105,11 @@ export function Navbar() {
                   </Avatar>
 
                   <div className="flex justify-between w-full">
-                    <div className="flex flex-col justify-center mt-2">
-                      <h3 className="font-bold text-gray-900 text-lg leading-tight mb-1">{user?.name?.split(' ')[0] + ' ' + user?.name?.split(' ')[1]}</h3>
-                      <p className="text-sm text-gray-600 mb-3">{user?.email}</p>
+                    <div className="flex justify-between w-full mt-2 relative">
+                      <div className="flex flex-col">
+                        <h1 className="font-bold text-gray-900 text-lg leading-tight mb-1">{user?.name?.split(' ')[0] + ' ' + user?.name?.split(' ')[1]}</h1>
+                        <p className="text-sm text-gray-600 mb-3">{user?.email}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -108,6 +122,20 @@ export function Navbar() {
                 <LogIn className="w-4 h-4 mr-2" />
                 Faça login
               </Button>
+            )}
+
+            {user && (
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200/50 rounded-2xl px-5 py-3">
+                <div className="flex items-center">
+                  <div className="min-w-8 min-h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mr-3">
+                    <Coins className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex justify-between items-center w-full">
+                    <h4 className="font-bold text-yellow-800">{user.amount || 0.00} Capcoins</h4>
+                    <Button onClick={() => setIsCoinsModalOpen(true)} size={"sm"} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white cursor-pointer">Adicionar mais</Button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Plan Status */}
@@ -207,6 +235,8 @@ export function Navbar() {
         onClose={() => setIsPricingOpen(false)}
         trigger="sidebar"
       />
+
+      <CoinsModal isOpen={isCoinsModalOpen} setIsOpen={setIsCoinsModalOpen} />
 
     </header>
   )

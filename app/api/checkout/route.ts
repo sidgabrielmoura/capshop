@@ -6,10 +6,28 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { priceID } = body;
+  const { priceID, quantity } = body;
 
-  console.log(priceID);
+  console.log(priceID, quantity)
+
   try {
+    if (priceID === "price_1Rw8nEQCuTgWpGfknSwWOh33") {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price: priceID,
+            quantity: quantity,
+          },
+        ],
+        success_url: `${req.headers.get("origin")}/success?id=coin`,
+        cancel_url: `${req.headers.get("origin")}/cancel?id=coin`,
+      })
+
+      return new Response(JSON.stringify({ url: session.url }), { status: 200 })
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",

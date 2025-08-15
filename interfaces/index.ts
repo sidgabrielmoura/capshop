@@ -23,8 +23,8 @@ export interface Plan {
   name: string;
   description: string;
   price: string; // formato exibido ("R$ 29,90")
-  numberPrice: number; // valor numérico para cálculos
-  period: string;
+  numberPrice?: number; // valor numérico para cálculos
+  period?: string;
   color: string; // gradiente ou cor
   features: string[];
   limitations: string[];

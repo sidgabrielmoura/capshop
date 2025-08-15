@@ -13,6 +13,7 @@ import {
     MessageCircle,
     Calendar,
     CreditCard,
+    Coins,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -20,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const planFeatures = [
     {
@@ -44,6 +46,33 @@ const planFeatures = [
         icon: Crown,
         title: "Recursos Premium",
         description: "Acesso a todas as funcionalidades",
+        color: "bg-pink-500",
+    },
+]
+
+const coinsFeatures = [
+    {
+        icon: Sparkles,
+        title: "IA limitada",
+        description: "Gere títulos e descrições por coins",
+        color: "bg-green-500",
+    },
+    {
+        icon: Zap,
+        title: "Otimização Automática",
+        description: "Para duas plataformas de venda",
+        color: "bg-orange-500",
+    },
+    {
+        icon: Star,
+        title: "Suporte Básico",
+        description: "Atendimento 24/7",
+        color: "bg-blue-500",
+    },
+    {
+        icon: Crown,
+        title: "Recursos Premium",
+        description: "Acesso a todas as funcionalidades por coins",
         color: "bg-pink-500",
     },
 ]
@@ -94,20 +123,41 @@ interface Plan {
     price_number: number
 }
 
+interface Coins {
+    id: string,
+    quantity: number,
+    price: string
+}
+
 export default function PaymentSuccessPage() {
+    const searchParams = useSearchParams();
+    const route = useRouter();
+    const idParam = searchParams.get("id");
+
     const [planData, setPlanData] = useState<Plan | null>(null);
+    const [coinsData, setCoinsData] = useState<Coins | null>(null);
+    const [isCoin, setIsCoin] = useState(false);
     const { data: user, update } = useSession();
     const [hasSubscribed, setHasSubscribed] = useState(false);
 
+    // 1️⃣ Carregar dados iniciais
     useEffect(() => {
         const storedPlan = localStorage.getItem("selectedPlan");
-        if (storedPlan) {
-            setPlanData(JSON.parse(storedPlan));
-        }
-    }, []);
+        const storedCoins = localStorage.getItem("coins-payment");
 
+        if (storedPlan) setPlanData(JSON.parse(storedPlan));
+        if (storedCoins) setCoinsData(JSON.parse(storedCoins));
+
+        if (!storedPlan && !storedCoins) {
+            route.push("/");
+        }
+
+        if (idParam === "coin") setIsCoin(true);
+    }, [idParam, route]);
+
+    // 2️⃣ Criar assinatura
     useEffect(() => {
-        if (!planData || !user?.user || hasSubscribed) return;
+        if (!planData || !user?.user || hasSubscribed || isCoin) return;
 
         const handleCreatePlan = async () => {
             try {
@@ -126,19 +176,60 @@ export default function PaymentSuccessPage() {
                     return;
                 }
 
-                const data = await response.json();
+                await response.json();
                 await update();
                 toast.success("Plano criado com sucesso!");
-                console.log("Plano criado com sucesso:", data);
-
-                setHasSubscribed(true)
+                setHasSubscribed(true);
+                localStorage.removeItem("selectedPlan");
+                localStorage.removeItem("coins-payment")
             } catch (error) {
-                console.log(error)
+                console.log(error);
+            } finally {
+                localStorage.removeItem("selectedPlan");
+                localStorage.removeItem("coins-payment");
             }
         };
 
         handleCreatePlan();
-    }, [planData, user, hasSubscribed, update]);
+    }, [planData, user, hasSubscribed, update, isCoin]);
+
+    // 3️⃣ Adicionar coins
+    useEffect(() => {
+        if (!coinsData || !user?.user || hasSubscribed || !isCoin) return;
+
+        const handleUpsertCoins = async () => {
+            try {
+                const response = await fetch("/api/coins", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userId: user.user.id,
+                        amountToAdd: coinsData?.quantity || 0
+                    })
+                });
+
+                if (response.ok) {
+                    toast.success("Coins adicionados com sucesso!");
+                    setHasSubscribed(true);
+                } else {
+                    toast.error("Erro ao adicionar coins.");
+                }
+
+                await update();
+                localStorage.removeItem("selectedPlan");
+                localStorage.removeItem("coins-payment")
+            } catch (error) {
+                console.error("Erro ao atualizar coins:", error);
+                toast.error("Erro ao atualizar coins.");
+            } finally {
+                localStorage.removeItem("selectedPlan");
+                localStorage.removeItem("coins-payment");
+            }
+        };
+
+        handleUpsertCoins();
+    }, [coinsData, user, hasSubscribed, update, isCoin]);
+
 
     return (
         <div className="min-h-screen p-2 lg:p-8">
@@ -153,10 +244,16 @@ export default function PaymentSuccessPage() {
 
                             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Pagamento Aprovado!</h1>
 
-                            <p className="text-lg lg:text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
-                                Sua conta Premium foi ativada com sucesso. Agora você tem acesso a todos os recursos avançados da
-                                plataforma.
-                            </p>
+                            {isCoin ? (
+                                <p className="text-lg lg:text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+                                    Seus Capcoins foram adicionados com sucesso. Agora você pode usá-los para comprar produtos e serviços na plataforma.
+                                </p>
+                            ) : (
+                                <p className="text-lg lg:text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+                                    Sua conta Premium foi ativada com sucesso. Agora você tem acesso a todos os recursos avançados da
+                                    plataforma.
+                                </p>
+                            )}
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
                                 <Badge className="bg-green-100 text-green-700 hover:bg-green-100 px-4 py-2">
@@ -164,8 +261,17 @@ export default function PaymentSuccessPage() {
                                     Pagamento Confirmado
                                 </Badge>
                                 <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 px-4 py-2">
-                                    <Crown className="w-4 h-4 mr-2" />
-                                    Premium Ativo
+                                    {isCoin ? (
+                                        <>
+                                            <Coins className="w-4 h-4 mr-2" />
+                                            <h1>Capcoins adicionados</h1>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Crown className="w-4 h-4 mr-2" />
+                                            <h1>Premium Ativo</h1>
+                                        </>
+                                    )}
                                 </Badge>
                             </div>
 
@@ -186,83 +292,145 @@ export default function PaymentSuccessPage() {
                         <Card className="p-6 lg:p-8 bg-white/60 shadow-lg">
                             <div className="flex items-start justify-between mb-6">
                                 <div>
-                                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">Detalhes da Assinatura</h2>
-                                    <p className="text-gray-600">Plano Premium Mensal</p>
+                                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">Detalhes da compra</h2>
+                                    <p className="text-gray-600">{!isCoin ? "Plano Premium Mensal" : "Capcoins Adicionados"}</p>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-2xl lg:text-3xl font-bold text-purple-600 truncate">{planData?.price}</div>
-                                    <div className="text-sm text-gray-500">{planData?.period}</div>
-                                </div>
+                                {!isCoin ? (
+                                    <div className="text-right">
+                                        <div className="text-2xl lg:text-3xl font-bold text-purple-600 truncate">{planData?.price}</div>
+                                        <div className="text-sm text-gray-500">{planData?.period}</div>
+                                    </div>
+                                ) : (
+                                    <div className="text-right">
+                                        <div className="text-2xl lg:text-3xl font-bold text-purple-600 truncate">R$ {coinsData?.price}</div>
+                                        <div className="text-sm text-gray-500">{coinsData?.quantity} coins</div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                                {planFeatures.map((feature, index) => (
-                                    <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                        <div className={`w-10 h-10 ${feature.color} rounded-lg flex items-center justify-center`}>
-                                            <feature.icon className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-gray-900 text-sm lg:text-base">{feature.title}</h3>
-                                            <p className="text-xs lg:text-sm text-gray-600">{feature.description}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                {isCoin ? (
+                                    <>
+                                        {coinsFeatures.map((feature, index) => (
+                                            <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                                <div className={`min-w-10 min-h-10 ${feature.color} rounded-lg flex items-center justify-center`}>
+                                                    <feature.icon className="min-w-5 min-h-5 text-white" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900 text-sm lg:text-base">{feature.title}</h3>
+                                                    <p className="text-xs lg:text-sm text-gray-600">{feature.description}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <>
+                                        {planFeatures.map((feature, index) => (
+                                            <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                                <div className={`min-w-10 min-h-10 ${feature.color} rounded-lg flex items-center justify-center`}>
+                                                    <feature.icon className="min-w-5 min-h-5 text-white" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900 text-sm lg:text-base">{feature.title}</h3>
+                                                    <p className="text-xs lg:text-sm text-gray-600">{feature.description}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200">
-                                <div className="flex items-center gap-3 mb-3 sm:mb-0">
-                                    <Calendar className="w-5 h-5 text-purple-600" />
-                                    <span className="text-sm lg:text-base text-gray-700">
-                                        <strong>Próxima cobrança:</strong>{" "}
-                                        {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("pt-BR")}
-                                    </span>
+                            {!isCoin && (
+                                <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200">
+                                    <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                                        <Calendar className="w-5 h-5 text-purple-600" />
+                                        <span className="text-sm lg:text-base text-gray-700">
+                                            <strong>Próxima cobrança:</strong>{" "}
+                                            {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("pt-BR")}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-purple-200 text-purple-600 hover:bg-purple-50 bg-transparent"
+                                    >
+                                        <CreditCard className="w-4 h-4 mr-2" />
+                                        Gerenciar
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-purple-200 text-purple-600 hover:bg-purple-50 bg-transparent"
-                                >
-                                    <CreditCard className="w-4 h-4 mr-2" />
-                                    Gerenciar
-                                </Button>
-                            </div>
+                            )}
                         </Card>
 
                         {/* Next Steps */}
                         <Card className="p-6 lg:p-8 bg-gradient-to-tr from-amber-200/20 to-amber-400/20 shadow-lg">
                             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6">Próximos Passos</h2>
                             <div className="space-y-4">
-                                {nextSteps.map((step, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 gap-4 sm:gap-0"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative">
-                                                <div
-                                                    className={`w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-r ${step.color} rounded-xl flex items-center justify-center`}
-                                                >
-                                                    <step.icon className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-                                                </div>
-                                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center">
-                                                    <span className="text-xs font-bold">{index + 1}</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900 text-base lg:text-lg">{step.title}</h3>
-                                                <p className="text-sm lg:text-base text-gray-600">{step.description}</p>
-                                            </div>
-                                        </div>
-                                        <Link href={step.href}>
-                                            <Button
-                                                className={`bg-gradient-to-r ${step.color} hover:shadow-md cursor-pointer text-white px-4 lg:px-6 py-2 font-medium text-sm lg:text-base w-full sm:w-auto`}
+                                {!isCoin ? (
+                                    <>
+                                        {nextSteps.map((step, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 gap-4 sm:gap-0"
                                             >
-                                                {step.action}
-                                                <ArrowRight className="w-4 h-4 ml-2" />
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                ))}
+                                                <div className="flex items-center gap-4">
+                                                    <div className="relative">
+                                                        <div
+                                                            className={`w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-r ${step.color} rounded-xl flex items-center justify-center`}
+                                                        >
+                                                            <step.icon className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                                                        </div>
+                                                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center">
+                                                            <span className="text-xs font-bold">{index + 1}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-semibold text-gray-900 text-base lg:text-lg">{step.title}</h3>
+                                                        <p className="text-sm lg:text-base text-gray-600">{step.description}</p>
+                                                    </div>
+                                                </div>
+                                                <Link href={step.href}>
+                                                    <Button
+                                                        className={`bg-gradient-to-r ${step.color} hover:shadow-md cursor-pointer text-white px-4 lg:px-6 py-2 font-medium text-sm lg:text-base w-full sm:w-auto`}
+                                                    >
+                                                        {step.action}
+                                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <>
+                                        <div
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 gap-4 sm:gap-0"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative">
+                                                    <div
+                                                        className={`w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-r from-sky-400 to-blue-500 rounded-xl flex items-center justify-center`}
+                                                    >
+                                                        <Play className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                                                    </div>
+                                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center">
+                                                        <span className="text-xs font-bold">1</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900 text-base lg:text-lg">Use Seus Créditos</h3>
+                                                    <p className="text-sm lg:text-base text-gray-600">Crie um produto e use a IA para gerar conteúdo</p>
+                                                </div>
+                                            </div>
+                                            <Link href={"/"}>
+                                                <Button
+                                                    className={`bg-gradient-to-r from-sky-400 to-blue-500 hover:shadow-md cursor-pointer text-white px-4 lg:px-6 py-2 font-medium text-sm lg:text-base w-full sm:w-auto`}
+                                                >
+                                                    Usar Agora
+                                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </Card>
 
@@ -273,7 +441,7 @@ export default function PaymentSuccessPage() {
                                     <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Gift className="w-8 h-8 text-white" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Recursos Premium</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">{isCoin ? "Seus Créditos" : "Recursos Premium"}</h3>
                                     <p className="text-gray-600">Tudo que você pode fazer agora</p>
                                 </div>
 
@@ -298,7 +466,7 @@ export default function PaymentSuccessPage() {
                                     <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Gift className="w-8 h-8 text-white" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Recursos Premium</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">{isCoin ? "Seus Créditos" : "Recursos Premium"}</h3>
                                     <p className="text-gray-600">Tudo que você pode fazer agora</p>
                                 </div>
 
@@ -342,11 +510,12 @@ export default function PaymentSuccessPage() {
 
                 {/* Bottom Success Banner */}
                 <Card className="mt-8 lg:mt-12 p-6 lg:p-8 bg-white/60 shadow-lg text-center">
-                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
-                        Bem-vindo ao Capshop Premium! 🚀
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                        {!isCoin ? "Bem-vindo ao Capshop Premium!" : "Seus créditos estão prontos!"} 🚀
                     </h2>
                     <p className="text-base lg:text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
-                        Você agora faz parte de uma comunidade exclusiva de vendedores que usam IA para multiplicar seus resultados.
+                        {isCoin ? "Use seu crédito para experimentar o poder da IA na criação de conteúdo para seus produtos."
+                            : "Você agora faz parte de uma comunidade exclusiva de vendedores que usam IA para multiplicar seus resultados."}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
                         <Link href="/registerProduct" className="flex-1">

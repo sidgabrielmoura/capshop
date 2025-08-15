@@ -744,20 +744,6 @@ export default function NewProductPage() {
           </Button>
 
           <div className="flex gap-2 items-center">
-            {/* {currentStep === 7 && (
-              <Button
-                onClick={() => handleCreateProduct("draft")}
-                disabled={
-                  loadingRegisterProduct
-                }
-                size="lg"
-                className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 transition-all duration-200 text-white px-8 cursor-pointer"
-              >
-                Salvar como rascunho
-                <PenBox />
-              </Button>
-            )} */}
-
             <Button
               onClick={currentStep !== 7 ? nextStep : () => handleCreateProduct()}
               disabled={
