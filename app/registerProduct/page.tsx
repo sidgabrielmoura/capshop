@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { ArrowLeft, ArrowRight, Upload, Sparkles, Check, X, Loader, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Upload, Sparkles, Check, X, Loader, Plus, AlertTriangle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,6 +17,7 @@ import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createNotification } from "@/actions"
+import { useRouter } from "next/navigation"
 
 const steps = [
   { id: 1, name: "Fotos", description: "Imagens do produto" },
@@ -42,6 +43,7 @@ const categories = [
 
 export default function NewProductPage() {
   const user = useSession().data?.user
+  const route = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isPricingOpen, setIsPricingOpen] = useState(false)
   const [productData, setProductData] = useState({
@@ -65,6 +67,7 @@ export default function NewProductPage() {
   })
   const [newSpecification, setNewSpecification] = useState({ name: "", value: "" })
   const { update } = useSession()
+  const [modalOnBack, setModalOnBack] = useState(false)
 
   const nextStep = () => {
     setCurrentStep(prev => {
@@ -202,9 +205,10 @@ export default function NewProductPage() {
   const [seoCache, setSeoCache] = useState<{ title?: string; description?: string }>({});
 
   const handleCreateProductSEO = async (type: "title" | "description") => {
-    if (user?.amount && user?.amount < 5) {
-      toast.error("Você precisa de pelo menos 5 Capcoins para gerar SEO.");
-      return;
+    console.log(user, "user amount")
+    if ((!user?.amount || user?.amount < 5) && type === "title") {
+      toast.error("Você precisa de pelo menos 5 Capcoins para gerar SEO.")
+      return
     }
 
     setGeneratingSEO(true);
@@ -233,11 +237,11 @@ export default function NewProductPage() {
         })
       );
 
-      const firstImage = processedImages[0];
+      const firstImage = processedImages[0]
       if (!firstImage) {
-        toast.error("Nenhuma imagem disponível para gerar SEO.");
-        setGeneratingSEO(false);
-        return;
+        toast.error("Nenhuma imagem disponível para gerar SEO.")
+        setGeneratingSEO(false)
+        return
       }
 
       const res = await fetch("/api/seo-image", {
@@ -284,6 +288,10 @@ export default function NewProductPage() {
     }
   }
 
+  const onBack = () => {
+    setModalOnBack(true)
+  }
+
   useEffect(() => {
     const current_step = localStorage.getItem('current_step');
     setCurrentStep(current_step ? parseInt(current_step) : 1)
@@ -324,15 +332,48 @@ export default function NewProductPage() {
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
       <div className="mb-8">
-        <Link href="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+        <Button variant={"link"} onClick={onBack} className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar aos produtos
-        </Link>
+        </Button>
         <div className="text-center">
           <h1 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-3">Criar Novo Produto</h1>
           <p className="text-gray-600 text-lg">Siga os passos para criar seu produto perfeito</p>
         </div>
       </div>
+
+      <Dialog open={modalOnBack} onOpenChange={() => setModalOnBack(false)}>
+        <DialogContent className="max-w-lg rounded-2xl shadow-xl">
+          <div className="flex items-center space-x-3">
+            <AlertTriangle className="text-red-500 w-6 h-6" />
+            <DialogTitle className="text-xl font-semibold">Voltar</DialogTitle>
+          </div>
+          <DialogDescription className="text-gray-500 mt-2">
+            Tem certeza que deseja voltar? Todas as alterações feitas até agora serão <span className="font-medium text-red-600">perdidas</span>.
+          </DialogDescription>
+
+          <DialogFooter className="flex justify-end space-x-1 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setModalOnBack(false)}
+              className="rounded-xl cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-xl cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => {
+                localStorage.removeItem("current_step");
+                localStorage.removeItem("product_data");
+                route.push("/");
+              }}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Progress Steps */}
       <div className="mb-8 lg:mb-12">
