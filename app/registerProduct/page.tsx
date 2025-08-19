@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowLeft, ArrowRight, Upload, Sparkles, Check, X, Loader, Plus } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,8 @@ import Image from "next/image"
 import { ImageInput } from "@/interfaces"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { createNotification } from "@/actions"
 
 const steps = [
   { id: 1, name: "Fotos", description: "Imagens do produto" },
@@ -45,24 +47,43 @@ export default function NewProductPage() {
   const [productData, setProductData] = useState({
     images: [] as ImageInput[],
     name: "",
-    category: "", //ADD TO SCHEMA
+    category: "",
     description: "",
-    specifications: [] as string[], //ADD TO SCHEMA
+    specifications: {} as { [key: string]: string },
     price: "",
     origin_price: "",
   })
   const [loadingRegisterProduct, setLoadingRegisterProduct] = useState(false)
+  const [generatingSEO, setGeneratingSEO] = useState(false)
+  const [typingText, setTypingText] = useState({
+    title: "",
+    description: "",
+  });
+  const [isTyping, setIsTyping] = useState({
+    title: false,
+    description: false,
+  })
+  const [newSpecification, setNewSpecification] = useState({ name: "", value: "" })
+  const { update } = useSession()
 
   const nextStep = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
-    }
+    setCurrentStep(prev => {
+      const newStep = Math.min(prev + 1, steps.length);
+      if (newStep === 8) {
+        localStorage.removeItem('current_step')
+        localStorage.removeItem('product_data')
+      }
+      localStorage.setItem('current_step', String(newStep))
+      return newStep;
+    })
   }
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
+    setCurrentStep(prev => {
+      const newStep = Math.max(1, prev - 1);
+      localStorage.setItem('current_step', String(newStep))
+      return newStep;
+    })
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,13 +98,6 @@ export default function NewProductPage() {
     }))
   }
 
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const generateWithAI = (field: "name" | "description") => {
-    // Simular verificação de premium - abrir modal
-    setIsPricingOpen(true)
-  }
-
   async function convertBlobUrlToBase64(blobUrl: string) {
     const res = await fetch(blobUrl);
     const blob = await res.blob();
@@ -95,9 +109,7 @@ export default function NewProductPage() {
     });
   }
 
-  const addSpecification = () => {
-    const key = prompt("Nome da especificação:")
-    const value = prompt("Valor da especificação:")
+  const addSpecification = (key: string, value: string) => {
     if (key && value) {
       setProductData((prev) => ({
         ...prev,
@@ -106,12 +118,12 @@ export default function NewProductPage() {
     }
   }
 
-  // const removeSpecification = (key: string) => {
-  //   setProductData((prev) => ({
-  //     ...prev,
-  //     specifications: Object.fromEntries(Object.entries(prev.specifications).filter(([k]) => k !== key)),
-  //   }))
-  // }
+  const removeSpecification = (key: string) => {
+    setProductData((prev) => ({
+      ...prev,
+      specifications: Object.fromEntries(Object.entries(prev.specifications).filter(([k]) => k !== key)),
+    }))
+  }
 
   const selectedCategory = categories.find((cat) => cat.id === productData.category)
 
@@ -121,7 +133,6 @@ export default function NewProductPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       productData.images.map(async (img: any) => {
         if (typeof img.url === "string" && img.url.startsWith("blob:")) {
-          // Converte blob: para Base64
           const base64 = await convertBlobUrlToBase64(img.url);
           return { base64 };
         }
@@ -152,14 +163,163 @@ export default function NewProductPage() {
 
     setLoadingRegisterProduct(false)
 
-    
     if (response.ok) {
+      createNotification({
+        userId: user?.id || "",
+        title: "Produto Criado",
+        message: `Você criou o produto ${productData.name}.`,
+        type: "CREATE_PRODUCT"
+      })
+
+      localStorage.removeItem("current_step")
+      localStorage.removeItem("product_data")
       nextStep()
       return
     }
 
     toast.error('Ocorreu um erro ao criar o produto')
   }
+
+  const typeText = (fullText: string, type: "title" | "description") => {
+    setTypingText((prev) => ({ ...prev, [type]: "" }))
+    setIsTyping((prev) => ({ ...prev, [type]: true }))
+
+    let i = 0
+    let currentText = ""
+
+    const interval = setInterval(() => {
+      currentText += fullText[i]
+      setTypingText((prev) => ({ ...prev, [type]: currentText }))
+      i++
+
+      if (i >= fullText.length) {
+        clearInterval(interval)
+        setIsTyping((prev) => ({ ...prev, [type]: false }))
+      }
+    }, 50)
+  }
+
+  const [seoCache, setSeoCache] = useState<{ title?: string; description?: string }>({});
+
+  const handleCreateProductSEO = async (type: "title" | "description") => {
+    if (user?.amount && user?.amount < 5) {
+      toast.error("Você precisa de pelo menos 5 Capcoins para gerar SEO.");
+      return;
+    }
+
+    setGeneratingSEO(true);
+
+    try {
+      if (seoCache.title || seoCache.description) {
+        if (type === "title" && seoCache.title) {
+          typeText(seoCache.title, "title");
+          setProductData((prev) => ({ ...prev, name: seoCache.title || "" }));
+        } else if (type === "description" && seoCache.description) {
+          typeText(seoCache.description, "description");
+          setProductData((prev) => ({ ...prev, description: seoCache.description || "" }));
+        }
+        setGeneratingSEO(false);
+        return;
+      }
+
+      const processedImages = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        productData.images.map(async (img: any) => {
+          if (typeof img.url === "string" && img.url.startsWith("blob:")) {
+            const base64 = await convertBlobUrlToBase64(img.url);
+            return { base64 };
+          }
+          return img;
+        })
+      );
+
+      const firstImage = processedImages[0];
+      if (!firstImage) {
+        toast.error("Nenhuma imagem disponível para gerar SEO.");
+        setGeneratingSEO(false);
+        return;
+      }
+
+      const res = await fetch("/api/seo-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: firstImage,
+          userId: user?.id
+        })
+      });
+
+      const data = await res.json();
+
+      if (data && data.result) {
+        const { title, description } = data.result;
+
+        setSeoCache({ title, description });
+
+        if (type === "title") {
+          typeText(title, "title");
+          setProductData((prev) => ({ ...prev, name: title }));
+        } else if (type === "description") {
+          typeText(description, "description");
+          setProductData((prev) => ({ ...prev, description }));
+        }
+
+        createNotification({
+          userId: user?.id || "",
+          title: "Geração de SEO",
+          message: `Você gerou o SEO para o produto ${productData.name}.`,
+          type: "CREATE_SEO"
+        })
+
+        update()
+        toast.success(`SEO ${type} gerado com sucesso!`);
+      } else {
+        toast.error(`Erro ao gerar SEO ${type}: ${data.error || "Desconhecido"}`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(`Erro ao gerar SEO ${type}`);
+    } finally {
+      setGeneratingSEO(false);
+    }
+  }
+
+  useEffect(() => {
+    const current_step = localStorage.getItem('current_step');
+    setCurrentStep(current_step ? parseInt(current_step) : 1)
+
+    const product_data = localStorage.getItem('product_data')
+    if (product_data) {
+      setProductData(JSON.parse(product_data))
+    }
+  }, [])
+
+  useEffect(() => {
+    const processImages = async () => {
+      const processedImages = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        productData.images.map(async (img: any) => {
+          if (typeof img.url === "string" && img.url.startsWith("blob:")) {
+            const base64 = await convertBlobUrlToBase64(img.url)
+            return { base64 }
+          }
+          return img
+        })
+      )
+
+      const updatedData = {
+        ...productData,
+        images: processedImages,
+      }
+
+      localStorage.setItem("product_data", JSON.stringify(updatedData))
+    }
+
+    if (productData?.images?.length) {
+      processImages()
+    }
+  }, [productData])
+
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
@@ -288,7 +448,7 @@ export default function NewProductPage() {
                     <Badge className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs">{index + 1}</Badge>
                     <Badge onClick={() => {
                       const newImages = productData.images.filter((_, i) => i !== index)
-                      setProductData({ images: newImages, name: '', description: '', price: '', origin_price: '', specifications: [], category: '' })
+                      setProductData({ images: newImages, name: '', description: '', price: '', origin_price: '', specifications: {}, category: '' })
                     }} className="absolute py-2 cursor-pointer -top-2 -right-2 bg-purple-500"><X /></Badge>
                   </div>
                 ))}
@@ -349,14 +509,16 @@ export default function NewProductPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Input
                   placeholder="Ex: Smartphone Galaxy Pro Max Ultra..."
-                  value={productData.name}
+                  value={typingText.title || productData.name}
                   onChange={(e) => setProductData((prev) => ({ ...prev, name: e.target.value }))}
+                  disabled={isTyping.title}
                   className="flex-1 h-12 lg:h-14 text-base lg:text-md bg-white/70 border-white/50 focus:bg-white/90"
                 />
                 <Button
-                  onClick={() => generateWithAI("name")}
+                  disabled={generatingSEO}
+                  onClick={() => handleCreateProductSEO("title")}
                   size="lg"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 lg:px-6 h-12 lg:h-14 w-full sm:w-auto"
+                  className="bg-gradient-to-r cursor-pointer disabled:opacity-90 disabled:animate-pulse from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 lg:px-6 h-12 lg:h-14 w-full sm:w-auto"
                 >
                   <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 mr-2" />
                   IA
@@ -401,14 +563,15 @@ export default function NewProductPage() {
               <div className="flex gap-3 items-start">
                 <Textarea
                   placeholder="Descreva seu produto de forma detalhada: características, benefícios, como usar..."
-                  value={productData.description}
+                  value={typingText.description || productData.description}
                   onChange={(e) => setProductData((prev) => ({ ...prev, description: e.target.value }))}
+                  disabled={isTyping.description}
                   className="flex-1 min-h-40 text-base bg-white/70 border-white/50 focus:bg-white/90 resize-none"
                 />
                 <Button
-                  onClick={() => generateWithAI("description")}
+                  onClick={() => handleCreateProductSEO("description")}
                   size="lg"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6"
+                  className="bg-gradient-to-r from-purple-500 cursor-pointer to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   IA
@@ -441,14 +604,48 @@ export default function NewProductPage() {
 
             <div className="space-y-6">
               <div className="flex justify-center">
-                <Button
-                  onClick={addSpecification}
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8"
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Adicionar Especificação
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Adicionar Especificação
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="w-full max-w-3xl">
+                    <DialogTitle>Adicionar Especificação</DialogTitle>
+                    <DialogDescription>
+                      Insira os detalhes da nova especificação.
+                    </DialogDescription>
+                    <Input
+                      value={newSpecification.name}
+                      onChange={(e) => setNewSpecification({ ...newSpecification, name: e.target.value })}
+                      placeholder="Nome da especificação"
+                    />
+                    <Input
+                      value={newSpecification.value}
+                      onChange={(e) => setNewSpecification({ ...newSpecification, value: e.target.value })}
+                      placeholder="Valor da especificação"
+                    />
+                    <DialogFooter>
+                      <DialogClose>
+                        <Button
+                          variant={'default'}
+                          size={'lg'}
+                          className="cursor-pointer bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8"
+                          onClick={() => {
+                            addSpecification(newSpecification.name, newSpecification.value)
+                            setNewSpecification({ name: "", value: "" })
+                          }}
+                        >
+                          Adicionar
+                        </Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
 
               {Object.keys(productData.specifications).length > 0 && (
@@ -467,8 +664,8 @@ export default function NewProductPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          // onClick={() => removeSpecification(key)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => removeSpecification(key)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -718,7 +915,10 @@ export default function NewProductPage() {
                   Ver Todos os Produtos
                 </Button>
               </Link>
-              <Link href="/novo-produto">
+              <Link href="/registerProduct" onClick={() => {
+                localStorage.setItem("current_step", "1")
+                setCurrentStep(1)
+              }}>
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8"

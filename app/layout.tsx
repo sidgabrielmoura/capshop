@@ -4,8 +4,9 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Sidebar } from "@/components/sidebar"
 import { Navbar } from "@/components/navbar"
-import AuthProvider from "./providers/auth"
+import AuthProvider from "../providers/auth"
 import { Toaster } from "@/components/ui/sonner"
+import { ProductsProvider } from "@/providers/productsProvider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={inter.className}>
         <AuthProvider>
+          <ProductsProvider>
           <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100">
             <div className="flex">
               <Sidebar />
@@ -33,6 +35,7 @@ export default function RootLayout({
               </div>
             </div>
           </div>
+          </ProductsProvider>
         </AuthProvider>
       </body>
     </html>

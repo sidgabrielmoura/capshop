@@ -6,8 +6,7 @@ import { UserSession } from "@/interfaces";
 
 export async function GET(req: NextRequest) {
     try {
-        // Para Next.js App Router, use getServerSession
-        const useSession = await getServerSession(authOptions); // Passe as opções de autenticação
+        const useSession = await getServerSession(authOptions)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const session = (useSession as any)?.user as UserSession
 
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
                 { status: 400 }
             );
         }
-
 
         const product = await db.product.findFirst({
             where: {

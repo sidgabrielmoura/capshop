@@ -103,7 +103,7 @@ export function CoinsModal({ isOpen, setIsOpen }: CoinsModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto bg-yellow-50/70 backdrop-blur-lg border-orange-200/50">
+            <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto bg-yellow-50/70 backdrop-blur-lg border-orange-200/50">
                 <DialogHeader className="text-center pb-6">
                     <div className="w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                         <Coins className="w-10 h-10 text-white" />

@@ -42,7 +42,10 @@ export async function POST(req: Request) {
           create: finalImages
         }
       }
-    });
+    }).catch((error) => {
+      console.error("💥 Erro ao criar produto:", error);
+      return NextResponse.json({ error: "Erro ao criar produto" }, { status: 500 });
+    })
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {

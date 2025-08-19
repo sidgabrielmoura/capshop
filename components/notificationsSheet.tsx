@@ -2,111 +2,70 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Bell, Check, Sparkles, Package, Settings, X, MoreHorizontal } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Bell, Check, X, MoreHorizontal, MessageCircleWarning } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-interface Notification {
-  id: string
-  type: "product" | "ai" | "system" | "success"
-  title: string
-  description: string
-  time: string
-  read: boolean
-  icon: React.ComponentType<{ className?: string }>
-  color: string
-}
-
-const notifications: Notification[] = [
-  {
-    id: "1",
-    type: "success",
-    title: "Produto criado com sucesso!",
-    description: "Smartphone Galaxy Pro foi adicionado à sua loja",
-    time: "2 min atrás",
-    read: false,
-    icon: Package,
-    color: "bg-green-500",
-  },
-  {
-    id: "2",
-    type: "ai",
-    title: "IA gerou nova descrição",
-    description: "Descrição otimizada criada para Fone Bluetooth Premium",
-    time: "15 min atrás",
-    read: false,
-    icon: Sparkles,
-    color: "bg-purple-500",
-  },
-  {
-    id: "3",
-    type: "system",
-    title: "Configuração atualizada",
-    description: "Suas preferências de IA foram salvas com sucesso",
-    time: "1 hora atrás",
-    read: true,
-    icon: Settings,
-    color: "bg-blue-500",
-  },
-  {
-    id: "4",
-    type: "product",
-    title: "Produto visualizado",
-    description: "Smartwatch Fitness recebeu 5 novas visualizações",
-    time: "2 horas atrás",
-    read: true,
-    icon: Package,
-    color: "bg-orange-500",
-  },
-  {
-    id: "5",
-    type: "ai",
-    title: "Créditos IA utilizados",
-    description: "Você usou 3 créditos para gerar conteúdo hoje",
-    time: "3 horas atrás",
-    read: true,
-    icon: Sparkles,
-    color: "bg-purple-500",
-  },
-  {
-    id: "6",
-    type: "success",
-    title: "Backup realizado",
-    description: "Todos os seus produtos foram salvos automaticamente",
-    time: "1 dia atrás",
-    read: true,
-    icon: Check,
-    color: "bg-green-500",
-  },
-]
+import { useSession } from "next-auth/react"
+import { Notification } from "@/lib/generated/prisma"
+import { fetchNotifications } from "@/actions"
 
 export function NotificationSheet() {
-  const [notificationList, setNotificationList] = useState(notifications)
+  const [notificationList, setNotificationList] = useState<Notification[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const userId = useSession().data?.user.id
 
   const unreadCount = notificationList.filter((n) => !n.read).length
 
-  const markAsRead = (id: string) => {
-    setNotificationList((prev) =>
-      prev.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
-    )
-  }
+  const handleMarkAsRead = async (ids: string[]) => {
+    const res = await fetch("/api/notifications", {
+      method: "PATCH",
+      body: JSON.stringify({ ids }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (data.success) {
+      setNotificationList((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)));
+    }
+  };
 
-  const markAllAsRead = () => {
-    setNotificationList((prev) => prev.map((notification) => ({ ...notification, read: true })))
-  }
+  const handleDeleteNotification = async (id: string) => {
+    const res = await fetch("/api/notifications", {
+      method: "DELETE",
+      body: JSON.stringify({ id }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (data.success) {
+      setNotificationList((prev) => prev.filter((n) => n.id !== id));
+    }
+  };
 
-  const deleteNotification = (id: string) => {
-    setNotificationList((prev) => prev.filter((notification) => notification.id !== id))
-  }
+  useEffect(() => {
+    fetchNotifications().then((data) => {
+      if (data) setNotificationList(data.notifications.reverse());
+    })
+  }, [userId]);
 
-  const clearAll = () => {
-    setNotificationList([])
+  const get_color = (notification: Notification) => {
+    switch (notification.type) {
+      case "DELETE_PRODUCT":
+        return "bg-gradient-to-r from-red-500/80 to-red-700/80 text-white";
+      case "CREATE_SEO":
+        return "bg-gradient-to-r from-green-500/80 to-green-700/80 text-white";
+      case "CREATE_PRODUCT":
+        return "bg-gradient-to-r from-yellow-400/80 to-yellow-600/80 text-yellow-900";
+      case "BUY_COINS":
+        return "bg-gradient-to-r from-blue-500/80 to-blue-700/80 text-white";
+      case "CREATE_PLAN":
+        return "bg-gradient-to-r from-purple-500/80 to-purple-700/80 text-white";
+      default:
+        return "bg-gradient-to-r from-slate-400/80 to-slate-600/80 text-white";
+    }
   }
 
   return (
@@ -129,17 +88,17 @@ export function NotificationSheet() {
               Notificações
             </SheetTitle>
             <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
+              {unreadCount > 0 && (
                 <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                    {unreadCount} novas
+                  {unreadCount} novas
                 </Badge>
-                )}
+              )}
 
-                <SheetClose asChild>
-                    <Button variant={'outline'} size={'icon'} className="cursor-pointer">
-                            <X/>
-                    </Button>
-                </SheetClose>
+              <SheetClose asChild>
+                <Button variant={'outline'} size={'icon'} className="cursor-pointer">
+                  <X />
+                </Button>
+              </SheetClose>
             </div>
           </div>
 
@@ -149,7 +108,7 @@ export function NotificationSheet() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={markAllAsRead}
+                  onClick={() => handleMarkAsRead(notificationList.map((n) => n.id))}
                   className="text-xs bg-white/50 border-white/30 hover:bg-white/70 w-1/2 flex-1 cursor-pointer"
                 >
                   <Check className="w-3 h-3 mr-1" />
@@ -159,7 +118,6 @@ export function NotificationSheet() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={clearAll}
                 className="text-xs bg-white/50 border-white/30 hover:bg-white/70 text-red-600 hover:text-red-700 w-1/2 flex-1 cursor-pointer"
               >
                 <X className="w-3 h-3 mr-1" />
@@ -180,21 +138,20 @@ export function NotificationSheet() {
             <p className="text-sm text-gray-600">Você está em dia com tudo!</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
-            <div className="space-y-3 py-4 px-2">
+          <ScrollArea className="h-[calc(100vh-180px)]">
+            <div className="space-y-3 px-2">
               {notificationList.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`group relative p-4 rounded-xl transition-all duration-200 cursor-pointer ${
-                    notification.read ? "bg-white/30 hover:bg-white/40" : "bg-white/60 hover:bg-white/70 shadow-sm"
-                  }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
+                  className={`group relative p-4 rounded-xl transition-all duration-200 cursor-pointer ${notification.read ? "bg-white/30 hover:bg-white/40" : "bg-white/60 hover:bg-white/70 shadow-sm"
+                    }`}
+                  onClick={() => !notification.read && handleMarkAsRead([notification.id])}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-10 h-10 ${notification.color} rounded-lg flex items-center justify-center flex-shrink-0`}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${get_color(notification)}`}
                     >
-                      <notification.icon className="w-5 h-5 text-white" />
+                      <MessageCircleWarning className="w-5 h-5 text-white" />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -219,13 +176,13 @@ export function NotificationSheet() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
                               {!notification.read && (
-                                <DropdownMenuItem onClick={() => markAsRead(notification.id)}>
+                                <DropdownMenuItem onClick={() => handleMarkAsRead([notification.id])}>
                                   <Check className="w-4 h-4 mr-2" />
                                   Marcar como lida
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
-                                onClick={() => deleteNotification(notification.id)}
+                                onClick={() => handleDeleteNotification(notification.id)}
                                 className="text-red-600 focus:text-red-600"
                               >
                                 <X className="w-4 h-4 mr-2" />
@@ -237,10 +194,16 @@ export function NotificationSheet() {
                       </div>
 
                       <p className={`text-sm mt-1 ${notification.read ? "text-gray-500" : "text-gray-600"}`}>
-                        {notification.description}
+                        {notification.message}
                       </p>
 
-                      <span className="text-xs text-gray-400 mt-2 block">{notification.time}</span>
+                      <span className="text-xs text-gray-400 mt-2 block">{new Date(notification.createdAt).toLocaleString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}</span>
                     </div>
                   </div>
                 </div>

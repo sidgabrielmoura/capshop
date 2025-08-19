@@ -101,6 +101,16 @@ model Coins {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String   
+  type        String  
+  title       String
+  message     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
 model Subscription {
   id        String    @id @default(uuid())
   userId    String    @unique

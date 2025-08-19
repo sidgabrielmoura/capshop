@@ -6,7 +6,6 @@ import {
     Heart,
     Share2,
     Edit,
-    Copy,
     Trash2,
     ExternalLink,
     ChevronLeft,
@@ -81,6 +80,26 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
         findProduct()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id])
+
+    const handleDeleteProduct = async (productId: string) => {
+        try {
+            const response = await fetch('/api/delete-product', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: productId })
+            })
+
+            if (!response.ok) {
+                toast.error('erro ao deletar produto ou produto inexistente')
+                return
+            }
+
+            toast.success('produto deletado com sucesso')
+            route.push('/')
+        } catch (error) {
+            console.log(error)
+        }
+    }
 
     return (
         <div className="max-w-7xl mx-auto animate-fade-in">
@@ -218,10 +237,6 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
 
                                 {/* Stats */}
                                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                                    {/* <div className="flex items-center">
-                                        <Eye className="w-4 h-4 mr-1" />
-                                        {productData.views.toLocaleString()} visualizações
-                                    </div> */}
                                     <div>Criado em {new Date(productData.createdAt).toLocaleDateString("pt-BR")}</div>
                                 </div>
                             </div>
@@ -238,13 +253,14 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                             {productData.specifications.length > 0 && (
                                 <Card className="p-6 bg-white/60 backdrop-blur-sm border-white/30">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Especificações</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
                                         {Object.entries(productData.specifications).map(([key, value]) => (
                                             <div
                                                 key={key}
-                                                className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0 bg-yellow-100/50 rounded-lg px-2"
+                                                className="flex justify-between items-center py-2 px-2 gap-4"
                                             >
-                                                <span className="text-gray-900">{value}</span>
+                                                <span className="text-gray-900 bg-blue-100 p-2 w-full rounded-lg">{value.split(": ")[0]}</span>
+                                                <span className="text-gray-900 bg-blue-100 p-2 w-full rounded-lg">{value.split(": ")[1]}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -252,8 +268,8 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                             )}
 
                             {/* Actions */}
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-3 flex gap-2">
+                                <div className="grid grid-cols-2 gap-3 w-full">
                                     <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
                                         <Edit className="w-4 h-4 mr-2" />
                                         Editar Produto
@@ -265,11 +281,6 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                                 </div>
 
                                 <div className="flex gap-3">
-                                    <Button variant="outline" className="flex-1 bg-white/50 border-white/30 hover:bg-white/70">
-                                        <Copy className="w-4 h-4 mr-2" />
-                                        Duplicar
-                                    </Button>
-
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="outline" size="icon" className="bg-white/50 border-white/30 hover:bg-white/70">
@@ -277,7 +288,7 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem className="text-red-600 focus:text-red-600">
+                                            <DropdownMenuItem onClick={() => handleDeleteProduct(productData.id)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                                 <Trash2 className="w-4 h-4 mr-2" />
                                                 Excluir Produto
                                             </DropdownMenuItem>

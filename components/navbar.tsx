@@ -1,22 +1,28 @@
 "use client"
 
-import { Coins, Crown, LogIn, LogOut, Search, Sparkles, User, X } from "lucide-react"
+import { ArrowRight, Coins, Crown, LogIn, LogOut, Search, Sparkles, User, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationSheet } from "./notificationsSheet"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet"
 import { PricingModal } from "./pricingModal"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { CoinsModal } from "./coinsModal"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
+import { useProducts } from "@/providers/productsProvider"
+import { useRouter } from "next/navigation"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isPricingOpen, setIsPricingOpen] = useState(false)
   const [isCoinsModalOpen, setIsCoinsModalOpen] = useState(false)
+  const [inputValue, setInputValue] = useState("")
+  const { fetchProducts } = useProducts()
   const session = useSession().data
+  const router = useRouter()
 
   const user = {
     ...session?.user,
@@ -35,32 +41,54 @@ export function Navbar() {
     await signIn("google")
   }
 
+  const searchProducts = async () => {
+    if (inputValue.length < 3) {
+      return
+    }
+
+    fetchProducts(inputValue)
+  }
+
+  useEffect(() => {
+    if(inputValue.length === 0){
+      fetchProducts()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue])
+
   return (
     <header className="h-16 glass-effect px-8 flex items-center justify-between">
-      <div className="flex items-center space-x-4" />
-
-      <div className="flex-1 max-w-md mx-8">
+      <div className="flex-1 mx-8 lg:mx-auto max-w-xl">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Pesquisar produtos..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Pesquisar produtos"
             className="pl-10 bg-white/50 border-white/30 focus:bg-white/70 transition-all duration-200"
           />
+          {inputValue.length >= 3 && (
+            <ArrowRight onClick={searchProducts} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer" />
+          )}
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <Button
-          onClick={() => setIsCoinsModalOpen(true)}
-          size={"sm"}
-          className="px-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 max-md:hidden
-          hover:from-yellow-500 hover:to-orange-600 cursor-pointer text-zinc-50"
-        >
-          <span>{user.amount || "0"}</span>
-          <Coins />
-        </Button>
+      <div className="flex items-center space-x-2">
+        {session && (
+          <Button
+            onClick={() => setIsCoinsModalOpen(true)}
+            size={"sm"}
+            className="px-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 max-md:hidden
+            hover:from-yellow-500 hover:to-orange-600 cursor-pointer text-zinc-50"
+          >
+            <span>{user.amount || "0"}</span>
+            <Coins />
+          </Button>
+        )}
 
-        <NotificationSheet />
+        <div className="max-md:hidden">
+          <NotificationSheet />
+        </div>
 
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
@@ -124,7 +152,7 @@ export function Navbar() {
               </Button>
             )}
 
-            {user && (
+            {session && (
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200/50 rounded-2xl px-5 py-3">
                 <div className="flex items-center">
                   <div className="min-w-8 min-h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mr-3">
@@ -182,13 +210,43 @@ export function Navbar() {
                   Desbloqueie todo o potencial da IA e acelere suas vendas
                 </p>
 
-                <Button
-                  onClick={handleUpgrade}
-                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Upgrade para PRO
-                </Button>
+                {session ? (
+                  <Button
+                    onClick={handleUpgrade}
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Upgrade para PRO
+                  </Button>
+                ) : (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Upgrade para PRO
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md w-full">
+                      <DialogHeader>
+                        <DialogTitle className="text-center text-2xl font-bold">Bem-vindo</DialogTitle>
+                        <DialogDescription className="text-center text-gray-500">
+                          Faça login para continuar usando a plataforma
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <Button
+                        onClick={handleLogin}
+                        variant="outline"
+                        className="flex items-center justify-center gap-2 border-gray-300 py-2 cursor-pointer bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-zinc-50 hover:text-zinc-50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 128 128"><path fill="currentColor" d="M44.59 4.21a63.28 63.28 0 0 0 4.33 120.9a67.6 67.6 0 0 0 32.36.35a57.13 57.13 0 0 0 25.9-13.46a57.44 57.44 0 0 0 16-26.26a74.3 74.3 0 0 0 1.61-33.58H65.27v24.69h34.47a29.72 29.72 0 0 1-12.66 19.52a36.2 36.2 0 0 1-13.93 5.5a41.3 41.3 0 0 1-15.1 0A37.2 37.2 0 0 1 44 95.74a39.3 39.3 0 0 1-14.5-19.42a38.3 38.3 0 0 1 0-24.63a39.25 39.25 0 0 1 9.18-14.91A37.17 37.17 0 0 1 76.13 27a34.3 34.3 0 0 1 13.64 8q5.83-5.8 11.64-11.63c2-2.09 4.18-4.08 6.15-6.22A61.2 61.2 0 0 0 87.2 4.59a64 64 0 0 0-42.61-.38" /></svg>
+                        Entrar com Google
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             )}
 
@@ -198,7 +256,10 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-gray-700 bg-white/40 h-12 px-4 rounded-xl font-medium cursor-pointer"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    router.push("/plan-view")
+                    setIsOpen(false)
+                  }}
                 >
                   <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
                     <Crown className="w-4 h-4 text-yellow-600" />

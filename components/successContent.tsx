@@ -22,6 +22,7 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { useRouter, useSearchParams } from "next/navigation"
+import { createNotification } from "@/actions"
 
 const planFeatures = [
     {
@@ -140,7 +141,6 @@ export default function PaymentSuccessPage() {
     const { data: user, update } = useSession();
     const [hasSubscribed, setHasSubscribed] = useState(false);
 
-    // 1️⃣ Carregar dados iniciais
     useEffect(() => {
         const storedPlan = localStorage.getItem("selectedPlan");
         const storedCoins = localStorage.getItem("coins-payment");
@@ -155,7 +155,6 @@ export default function PaymentSuccessPage() {
         if (idParam === "coin") setIsCoin(true);
     }, [idParam, route]);
 
-    // 2️⃣ Criar assinatura
     useEffect(() => {
         if (!planData || !user?.user || hasSubscribed || isCoin) return;
 
@@ -180,6 +179,12 @@ export default function PaymentSuccessPage() {
                 await update();
                 toast.success("Plano criado com sucesso!");
                 setHasSubscribed(true);
+                createNotification({
+                    userId: user.user.id || "",
+                    title: "Plano Criado",
+                    message: `Você criou o plano ${planData.name}.`,
+                    type: "CREATE_PLAN"
+                })
                 localStorage.removeItem("selectedPlan");
                 localStorage.removeItem("coins-payment")
             } catch (error) {
@@ -193,7 +198,6 @@ export default function PaymentSuccessPage() {
         handleCreatePlan();
     }, [planData, user, hasSubscribed, update, isCoin]);
 
-    // 3️⃣ Adicionar coins
     useEffect(() => {
         if (!coinsData || !user?.user || hasSubscribed || !isCoin) return;
 
@@ -209,10 +213,16 @@ export default function PaymentSuccessPage() {
                 });
 
                 if (response.ok) {
-                    toast.success("Coins adicionados com sucesso!");
-                    setHasSubscribed(true);
+                    toast.success("Capcoins adicionados com sucesso!")
+                    setHasSubscribed(true)
+                    createNotification({
+                        userId: user.user.id,
+                        title: "Capcoins Adicionados",
+                        message: `Você recebeu ${coinsData?.quantity} capcoins.`,
+                        type: "BUY_COINS"
+                    })
                 } else {
-                    toast.error("Erro ao adicionar coins.");
+                    toast.error("Erro ao adicionar capcoins.")
                 }
 
                 await update();
