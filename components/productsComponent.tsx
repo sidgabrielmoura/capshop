@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Eye, Heart, MoreHorizontal, Package, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,13 +23,24 @@ interface ProductsPageProps {
 }
 
 export default function ProductsPageComponent({ products }: ProductsPageProps) {
-    const [favorites, setFavorites] = useState<number[]>([])
+    const [favorites, setFavorites] = useState<string[]>([])
     const [deletingProduct, setDeletingProduct] = useState<string[]>([])
     const router = useRouter()
     const user = useSession().data?.user
 
-    const toggleFavorite = (productId: number) => {
-        setFavorites((prev) => (prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]))
+    const toggleFavorite = (productId: string) => {
+        setFavorites((prev) => {
+            let updatedFavorites
+            if (prev.includes(productId)) {
+                updatedFavorites = prev.filter((id) => id !== productId)
+            } else {
+                updatedFavorites = [...prev, productId]
+            }
+
+            localStorage.setItem("favorites", JSON.stringify(updatedFavorites))
+
+            return updatedFavorites
+        })
     }
 
     const navigateTo = (path: string) => {
@@ -96,14 +107,14 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                 return
             }
 
-            if(status === 'active'){
+            if (status === 'active') {
                 createNotification({
                     userId: user?.id || "",
                     title: "Produto Desativado",
                     message: `Você desativou o produto ${productId}`,
                     type: "DISABLE_PRODUCT"
                 })
-            }else {
+            } else {
                 createNotification({
                     userId: user?.id || "",
                     title: "Produto Ativado",
@@ -126,6 +137,13 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
         }
     }
 
+    useEffect(() => {
+        const storedFavorites = localStorage.getItem("favorites")
+        if (storedFavorites) {
+            setFavorites(JSON.parse(storedFavorites))
+        }
+    }, [])
+
     return (
         <div className="animate-fade-in">
             <div className="mb-8">
@@ -136,7 +154,7 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
             <div className="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-1 gap-6">
                 {products.length > 0 && (
                     <>
-                        {products.map((product, i) => (
+                        {products.map((product) => (
                             <Card
                                 key={product.id}
                                 className={`
@@ -159,10 +177,10 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                                             size="icon"
                                             variant="secondary"
                                             className="w-8 h-8 bg-white/90 hover:bg-white"
-                                            onClick={() => toggleFavorite(i)}
+                                            onClick={() => toggleFavorite(product.id)}
                                         >
                                             <Heart
-                                                className={`w-4 h-4 ${favorites.includes(i) ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+                                                className={`w-4 h-4 ${favorites.includes(product.id) ? "fill-red-500 text-red-500" : "text-gray-600"}`}
                                             />
                                         </Button>
                                         <DropdownMenu>

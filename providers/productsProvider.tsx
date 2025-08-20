@@ -21,6 +21,17 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const fetchProducts = async (search = "", quickSearch = "") => {
     if (status !== "authenticated" || !session?.id) return
 
+    if (quickSearch === "favorites") {
+      const storedFavorites = localStorage.getItem("favorites")
+      if (storedFavorites) {
+        const favoriteIds = JSON.parse(storedFavorites) as string[]
+        setProducts((prev) => prev.filter((p) => favoriteIds.includes(p.id)))
+      } else {
+        setProducts([])
+      }
+      return
+    }
+
     try {
       const url = search.length >= 3 ? `/api/list-products?search=${search}` : quickSearch ? `/api/list-products?search=${quickSearch}` : "/api/list-products"
       const res = await fetch(url)
@@ -35,7 +46,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     if (status === "authenticated" && session?.id) {
       fetchProducts()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session?.id])
 
   return (

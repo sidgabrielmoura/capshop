@@ -52,10 +52,6 @@ export function Navbar() {
   }
 
   const searchProducts = async (quickSearch?: string) => {
-    if (quickSearch === 'favorites') {
-      return
-    }
-
     setQuickSearch(false)
     setMarkedQuickSearch(quickSearch || "")
     fetchProducts(inputValue, quickSearch)
