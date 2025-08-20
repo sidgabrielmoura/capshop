@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Coins, Crown, LogIn, LogOut, Search, Sparkles, User, X } from "lucide-react"
+import { ArrowRight, Coins, Crown, Lightbulb, LogIn, LogOut, Search, Sparkles, User, X, Zap } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationSheet } from "./notificationsSheet"
@@ -14,6 +14,14 @@ import { CoinsModal } from "./coinsModal"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { useProducts } from "@/providers/productsProvider"
 import { useRouter } from "next/navigation"
+import { Card, CardContent } from "./ui/card"
+
+const quickSearchResults = [
+  { name: "Ativos", id: "active", icon: <Lightbulb className="size-4" /> },
+  { name: "Rascunhos", id: "draft", icon: <X className="size-4" /> },
+  { name: "Todos", id: "", icon: <Zap className="size-4" /> },
+  { name: "Favoritos", id: "favorites", icon: <Sparkles className="size-4" /> }
+]
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -23,6 +31,8 @@ export function Navbar() {
   const { fetchProducts } = useProducts()
   const session = useSession().data
   const router = useRouter()
+  const [quickSearch, setQuickSearch] = useState(false)
+  const [markedQuickSearch, setMarkedQuickSearch] = useState<string | null>(null)
 
   const user = {
     ...session?.user,
@@ -41,35 +51,65 @@ export function Navbar() {
     await signIn("google")
   }
 
-  const searchProducts = async () => {
-    if (inputValue.length < 3) {
+  const searchProducts = async (quickSearch?: string) => {
+    if (quickSearch === 'favorites') {
       return
     }
 
-    fetchProducts(inputValue)
+    setQuickSearch(false)
+    setMarkedQuickSearch(quickSearch || "")
+    fetchProducts(inputValue, quickSearch)
   }
 
   useEffect(() => {
-    if(inputValue.length === 0){
+    if (inputValue.length === 0) {
       fetchProducts()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue])
 
   return (
     <header className="h-16 glass-effect px-8 flex items-center justify-between">
       <div className="flex-1 mx-8 lg:mx-auto max-w-xl">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Pesquisar produtos"
-            className="pl-10 bg-white/50 border-white/30 focus:bg-white/70 transition-all duration-200"
-          />
-          {inputValue.length >= 3 && (
-            <ArrowRight onClick={searchProducts} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer" />
-          )}
+        <div className="flex gap-2 relative">
+          <Button
+            disabled={!inputValue.startsWith('/')}
+            variant={"secondary"}
+            size={"icon"}
+            className="cursor-pointer shadow-md max-md:hidden bg-gradient-to-r from-purple-500/80 text-zinc-50 to-blue-500/80 hover:scale-105 transition-transform duration-200"
+            onClick={() => setQuickSearch(!quickSearch)}
+          >
+            <Zap />
+          </Button>
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Pesquisar produtos. ( / ) para pesquisa rápida"
+              className="pl-10 bg-white/50 border-white/30 focus:bg-white/70 transition-all duration-200 lg:text-md text-xs"
+            />
+            {inputValue.length >= 3 && (
+              <ArrowRight onClick={() => searchProducts()} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer" />
+            )}
+          </div>
+
+          <div className="absolute top-10 w-full py-1">
+            {quickSearch && inputValue.startsWith('/') && (
+              <Card className="py-1">
+                <CardContent className="flex items-center gap-1 p-2 overflow-x-auto">
+                  {quickSearchResults.map((result) => (
+                    <div onClick={() => {
+                      searchProducts(result.id)
+                    }} key={result.id} className={`flex items-center py-2 px-3 gap-2 text-sm rounded-md cursor-pointer hover:bg-gray-100 ${markedQuickSearch === result.id ? 'bg-gray-100' : ''}`}>
+                      {result.icon}
+                      <span>{result.name}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
 
@@ -100,7 +140,7 @@ export function Navbar() {
           <SheetContent className="py-1 px-3 bg-gradient-to-br from-pink-50/95 via-purple-50/95 to-blue-50/95 backdrop-blur-xl border-white/20 glass-effect-clean">
             <SheetHeader className="pb-0 mb-4">
               <div className="flex items-center justify-between">
-                <SheetTitle className="text-left text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                <SheetTitle className="text-left text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Minha Conta
                 </SheetTitle>
                 <SheetClose>
@@ -116,7 +156,7 @@ export function Navbar() {
               <div className="bg-white/60 backdrop-blur-sm border border-white/30 rounded-2xl p-4 mb-1 space-y-4">
                 {user.subscription?.plan.name === "Pro" ? (
                   <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 shadow-sm h-8 w-full">
-                    <Crown className="w-4 h-4 mr-1" />
+                    <Crown className="size-4 mr-1" />
                     PRO
                   </Badge>
                 ) : (
@@ -125,7 +165,7 @@ export function Navbar() {
                   </Badge>
                 )}
                 <div className="flex items-center gap-4">
-                  <Avatar className="w-14 h-14 ring-2 ring-white/50">
+                  <Avatar className="lg:size-14 size-10 ring-2 ring-white/50">
                     <AvatarImage src={user?.image || ''} />
                     <AvatarFallback className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-lg font-semibold">
                       {user?.name?.split(' ')[0].split('')[0].toUpperCase()}
@@ -135,8 +175,8 @@ export function Navbar() {
                   <div className="flex justify-between w-full">
                     <div className="flex justify-between w-full mt-2 relative">
                       <div className="flex flex-col">
-                        <h1 className="font-bold text-gray-900 text-lg leading-tight mb-1">{user?.name?.split(' ')[0] + ' ' + user?.name?.split(' ')[1]}</h1>
-                        <p className="text-sm text-gray-600 mb-3">{user?.email}</p>
+                        <h1 className="font-bold text-gray-900 text-md lg:text-lg leading-tight mb-1">{user?.name?.split(' ')[0] + ' ' + user?.name?.split(' ')[1]}</h1>
+                        <p className="text-xs lg:text-sm text-gray-600 mb-3">{user?.email}</p>
                       </div>
                     </div>
                   </div>
@@ -159,7 +199,7 @@ export function Navbar() {
                     <Coins className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex justify-between items-center w-full">
-                    <h4 className="font-bold text-yellow-800">{user.amount || 0.00} Capcoins</h4>
+                    <h4 className="font-bold text-yellow-800">{user.amount || 0.00} <span className="max-md:hidden">Capcoins</span></h4>
                     <Button onClick={() => setIsCoinsModalOpen(true)} size={"sm"} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white cursor-pointer">Adicionar mais</Button>
                   </div>
                 </div>

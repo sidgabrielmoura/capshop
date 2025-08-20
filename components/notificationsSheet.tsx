@@ -33,17 +33,22 @@ export function NotificationSheet() {
     }
   };
 
-  const handleDeleteNotification = async (id: string) => {
+  const handleDeleteNotification = async (id: string | string[]) => {
     const res = await fetch("/api/notifications", {
       method: "DELETE",
       body: JSON.stringify({ id }),
       headers: { "Content-Type": "application/json" },
     });
     const data = await res.json();
+
     if (data.success) {
-      setNotificationList((prev) => prev.filter((n) => n.id !== id));
+      setNotificationList((prev) =>
+        Array.isArray(id)
+          ? prev.filter((n) => !id.includes(n.id))
+          : prev.filter((n) => n.id !== id)
+      );
     }
-  };
+  }
 
   useEffect(() => {
     fetchNotifications().then((data) => {
@@ -63,6 +68,12 @@ export function NotificationSheet() {
         return "bg-gradient-to-r from-blue-500/80 to-blue-700/80 text-white";
       case "CREATE_PLAN":
         return "bg-gradient-to-r from-purple-500/80 to-purple-700/80 text-white";
+      case "ERROR_SEO":
+        return "bg-gradient-to-r from-red-500/80 to-red-700/80 text-white";
+      case "DISABLE_PRODUCT":
+        return "bg-gradient-to-r from-orange-500/80 to-orange-700/80 text-white";
+      case "ENABLE_PRODUCT":
+        return "bg-gradient-to-r from-emerald-500/80 to-emerald-700/80 text-white";
       default:
         return "bg-gradient-to-r from-slate-400/80 to-slate-600/80 text-white";
     }
@@ -116,6 +127,7 @@ export function NotificationSheet() {
                 </Button>
               )}
               <Button
+                onClick={() => handleDeleteNotification(notificationList.map((n) => n.id))}
                 variant="outline"
                 size="sm"
                 className="text-xs bg-white/50 border-white/30 hover:bg-white/70 text-red-600 hover:text-red-700 w-1/2 flex-1 cursor-pointer"

@@ -7,7 +7,7 @@ import { UserSession } from "@/interfaces"
 type ProductsContextType = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   products: any[]
-  fetchProducts: (search?: string) => void
+  fetchProducts: (search?: string, quickSearch?: string) => void
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined)
@@ -18,11 +18,11 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const { data: usesession, status } = useSession()
   const session = usesession?.user as UserSession
 
-  const fetchProducts = async (search = "") => {
+  const fetchProducts = async (search = "", quickSearch = "") => {
     if (status !== "authenticated" || !session?.id) return
 
     try {
-      const url = search ? `/api/list-products?search=${search}` : "/api/list-products"
+      const url = search.length >= 3 ? `/api/list-products?search=${search}` : quickSearch ? `/api/list-products?search=${quickSearch}` : "/api/list-products"
       const res = await fetch(url)
       const data = await res.json()
       setProducts(data)
@@ -31,7 +31,6 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // carrega todos ao montar
   useEffect(() => {
     if (status === "authenticated" && session?.id) {
       fetchProducts()

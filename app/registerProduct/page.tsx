@@ -75,6 +75,7 @@ export default function NewProductPage() {
       if (newStep === 8) {
         localStorage.removeItem('current_step')
         localStorage.removeItem('product_data')
+        return newStep;
       }
       localStorage.setItem('current_step', String(newStep))
       return newStep;
@@ -198,6 +199,9 @@ export default function NewProductPage() {
       if (i >= fullText.length) {
         clearInterval(interval)
         setIsTyping((prev) => ({ ...prev, [type]: false }))
+        setTimeout(() => {
+          setGeneratingSEO(false)
+        }, 3000);
       }
     }, 50)
   }
@@ -205,7 +209,6 @@ export default function NewProductPage() {
   const [seoCache, setSeoCache] = useState<{ title?: string; description?: string }>({});
 
   const handleCreateProductSEO = async (type: "title" | "description") => {
-    console.log(user, "user amount")
     if ((!user?.amount || user?.amount < 5) && type === "title") {
       toast.error("Você precisa de pelo menos 5 Capcoins para gerar SEO.")
       return
@@ -222,7 +225,7 @@ export default function NewProductPage() {
           typeText(seoCache.description, "description");
           setProductData((prev) => ({ ...prev, description: seoCache.description || "" }));
         }
-        setGeneratingSEO(false);
+
         return;
       }
 
@@ -249,7 +252,8 @@ export default function NewProductPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageUrl: firstImage,
-          userId: user?.id
+          userId: user?.id,
+          userAmount: user?.amount
         })
       });
 
@@ -261,11 +265,11 @@ export default function NewProductPage() {
         setSeoCache({ title, description });
 
         if (type === "title") {
-          typeText(title, "title");
-          setProductData((prev) => ({ ...prev, name: title }));
+          typeText(title, "title")
+          setProductData((prev) => ({ ...prev, name: title }))
         } else if (type === "description") {
-          typeText(description, "description");
-          setProductData((prev) => ({ ...prev, description }));
+          typeText(description, "description")
+          setProductData((prev) => ({ ...prev, description }))
         }
 
         createNotification({
@@ -279,12 +283,17 @@ export default function NewProductPage() {
         toast.success(`SEO ${type} gerado com sucesso!`);
       } else {
         toast.error(`Erro ao gerar SEO ${type}: ${data.error || "Desconhecido"}`);
+        createNotification({
+          userId: user?.id || "",
+          title: "Erro na geração de SEO",
+          message: `Erro ao gerar o SEO para o produto ${productData.name}.`,
+          type: "ERROR_SEO"
+        })
+        setGeneratingSEO(false)
       }
     } catch (error) {
       console.error(error);
       toast.error(`Erro ao gerar SEO ${type}`);
-    } finally {
-      setGeneratingSEO(false);
     }
   }
 
@@ -332,7 +341,7 @@ export default function NewProductPage() {
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
       <div className="mb-8">
-        <Button variant={"link"} onClick={onBack} className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+        <Button variant={"link"} onClick={onBack} className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6 text-sm lg:text-md">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar aos produtos
         </Button>
@@ -610,6 +619,7 @@ export default function NewProductPage() {
                   className="flex-1 min-h-40 text-base bg-white/70 border-white/50 focus:bg-white/90 resize-none"
                 />
                 <Button
+                  disabled={generatingSEO}
                   onClick={() => handleCreateProductSEO("description")}
                   size="lg"
                   className="bg-gradient-to-r from-purple-500 cursor-pointer to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6"

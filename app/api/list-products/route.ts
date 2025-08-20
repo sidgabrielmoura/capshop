@@ -19,22 +19,27 @@ export async function GET(req: NextRequest) {
     }
 
     const search = req.nextUrl.searchParams.get("search") || ""
+    console.log(search)
 
     const products = await db.product.findMany({
       where: {
         userId: session.id,
-        ...(search ? {
-          name: {
-            contains: search,
-            mode: "insensitive"
-          }
-        } : {})
+        ...(search
+          ? search === "active" || search === "draft"
+            ? { status: search }
+            : {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+            }
+          : {}),
       },
       include: {
         images: true,
         generatedContent: true,
       },
-    });
+    })
 
     return NextResponse.json(products);
   } catch (error) {

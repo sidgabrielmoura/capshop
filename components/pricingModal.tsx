@@ -130,6 +130,7 @@ export function PricingModal({ isOpen, onClose, trigger = "ai-button" }: Pricing
   }
 
   const HandleBuyPlan = async (priceID: string, plan: Plan) => {
+    setIsProcessing(true)
 
     const planToStore: SelectedPlan = {
       price_id: plan.price_id,
@@ -149,6 +150,7 @@ export function PricingModal({ isOpen, onClose, trigger = "ai-button" }: Pricing
     await stripePromise;
     if (data) {
       window.location.href = data.url
+      setIsProcessing(false)
       localStorage.setItem("selectedPlan", JSON.stringify(planToStore))
     }
 

@@ -186,7 +186,7 @@ export default function PaymentSuccessPage() {
                     type: "CREATE_PLAN"
                 })
                 localStorage.removeItem("selectedPlan");
-                localStorage.removeItem("coins-payment")
+                localStorage.removeItem("coins-payment");
             } catch (error) {
                 console.log(error);
             } finally {

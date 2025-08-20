@@ -53,3 +53,29 @@ export async function GET(req: NextRequest) {
         );
     }
 }
+
+export async function PUT(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const { id, status } = body;
+
+        if (!id) {
+            return NextResponse.json({ error: 'id não encontrado' }, { status: 400 });
+        }
+
+        const product = await db.product.update({
+            where: { id: id },
+            data: {
+                status: status,
+            },
+        });
+
+        return NextResponse.json(product);
+    } catch (error) {
+        console.error("💥 Erro no UPDATE /api/product:", error);
+        return NextResponse.json(
+            { message: "Erro interno" },
+            { status: 500 }
+        );
+    }
+}

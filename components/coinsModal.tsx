@@ -61,7 +61,6 @@ const coinPackages = [
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 export function CoinsModal({ isOpen, setIsOpen }: CoinsModalProps) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
     const productID = "price_1Rw8nEQCuTgWpGfknSwWOh33"
     const [isProcessing, setIsProcessing] = useState(false)
@@ -72,6 +71,8 @@ export function CoinsModal({ isOpen, setIsOpen }: CoinsModalProps) {
 
     const handleBuyPlan = async (id: string, quantity: number) => {
         setIsProcessing(true)
+        setSelectedPackage(id)
+
         const payload = {
             id,
             quantity,
@@ -85,7 +86,8 @@ export function CoinsModal({ isOpen, setIsOpen }: CoinsModalProps) {
         });
 
         setIsProcessing(false)
-        const data = await res.json();
+        const data = await res.json()
+        setSelectedPackage(null)
         await stripePromise;
         if (data) {
             window.location.href = data.url

@@ -75,12 +75,18 @@ const benefits = [
 ]
 
 type SelectedPlan = {
-  price_id: string;
-  name: string;
-  price: string;
-  period: string;
-  price_number: number
+    price_id: string;
+    name: string;
+    price: string;
+    period: string;
+    price_number: number
 };
+
+type Coins = {
+    id: string
+    price: string
+    quantity: number
+}
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -88,8 +94,10 @@ export default function PaymentCancelledPage() {
     const router = useRouter()
     const [selectedReason, setSelectedReason] = useState<string | null>(null)
     const [planData, setPlanData] = useState<Plan | null>(null)
+    const [coinsData, setCoinsData] = useState<Coins | null>(null)
 
     const handleTryAgain = async (priceID: string) => {
+        console.log(priceID)
         const planToStore: SelectedPlan = {
             price_id: planData?.price_id as string,
             name: planData?.name as string,
@@ -100,7 +108,10 @@ export default function PaymentCancelledPage() {
 
         const res = await fetch("/api/checkout", {
             method: "POST",
-            body: JSON.stringify({ priceID }),
+            body: JSON.stringify({ 
+                priceID,
+                quantity: coinsData?.quantity || 1
+            }),
             headers: { "Content-Type": "application/json" },
         });
 
@@ -114,10 +125,20 @@ export default function PaymentCancelledPage() {
 
     useEffect(() => {
         const storedPlan = localStorage.getItem("selectedPlan")
+        const storedCoins = localStorage.getItem("coins-payment")
         if (storedPlan) {
             setPlanData(JSON.parse(storedPlan))
         }
+        if (storedCoins) {
+            setCoinsData(JSON.parse(storedCoins))
+        }
     }, [])
+
+    useEffect(() => {
+        if (coinsData) {
+            console.log("Coins data atualizado:", coinsData)
+        }
+    }, [coinsData])
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 p-4 lg:p-8">
@@ -160,7 +181,7 @@ export default function PaymentCancelledPage() {
                             {/* Quick Actions */}
                             <div className="w-full max-w-lg mx-auto">
                                 <Button
-                                    onClick={() => handleTryAgain(planData?.price_id as string)}
+                                    onClick={() => handleTryAgain(planData?.price_id as string || coinsData?.id as string)}
                                     size="lg"
                                     className="cursor-pointer bg-gradient-to-r w-full from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white h-12 lg:h-14 text-base lg:text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                                 >
@@ -221,7 +242,7 @@ export default function PaymentCancelledPage() {
                                         <Button
                                             onClick={() => {
                                                 if (alt.action_id === "try_again") {
-                                                    handleTryAgain(planData?.price_id as string)
+                                                    handleTryAgain(planData?.price_id as string || coinsData?.id as string)
                                                     return
                                                 }
 
@@ -236,7 +257,6 @@ export default function PaymentCancelledPage() {
                             </div>
                         </Card>
 
-                        {/* Mobile Premium Card - Only visible on mobile */}
                         <div className="xl:hidden">
                             <Card className="p-6 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200/50">
                                 <div className="text-center mb-6">
@@ -259,13 +279,9 @@ export default function PaymentCancelledPage() {
                                 <Separator className="my-6 bg-purple-200/50" />
 
                                 <div className="text-center">
-                                    <div className="mb-4">
-                                        <span className="text-3xl font-bold text-purple-600">{planData?.price}</span>
-                                        <span className="text-gray-500 ml-2">/{planData?.period}</span>
-                                    </div>
-                                    <Button onClick={() => handleTryAgain(planData?.price_id as string)} className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3">
+                                    <Button onClick={() => handleTryAgain(planData?.price_id as string || coinsData?.id as string)} className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3">
                                         <Sparkles className="w-4 h-4 mr-2" />
-                                        Tentar Premium Novamente
+                                        Tentar Pagar Novamente
                                     </Button>
                                 </div>
                             </Card>
@@ -297,13 +313,9 @@ export default function PaymentCancelledPage() {
                                 <Separator className="my-6 bg-purple-200/50" />
 
                                 <div className="text-center">
-                                    <div className="mb-4">
-                                        <span className="text-3xl font-bold text-purple-600">{planData?.price}</span>
-                                        <span className="text-gray-500 ml-2">/{planData?.period}</span>
-                                    </div>
-                                    <Button onClick={() => handleTryAgain(planData?.price_id as string)} className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3">
+                                    <Button onClick={() => handleTryAgain(planData?.price_id as string || coinsData?.id as string)} className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3">
                                         <Sparkles className="w-4 h-4 mr-2" />
-                                        Tentar Premium Novamente
+                                        Tentar Pagar Novamente
                                     </Button>
                                 </div>
                             </Card>
@@ -363,7 +375,7 @@ export default function PaymentCancelledPage() {
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
                         <Button
-                            onClick={() => handleTryAgain(planData?.price_id as string)}
+                            onClick={() => handleTryAgain(planData?.price_id as string || coinsData?.id as string)}
                             size="lg"
                             className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 lg:px-8 py-3 lg:py-4 text-base lg:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
                         >

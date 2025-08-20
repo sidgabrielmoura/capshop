@@ -80,11 +80,57 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
         await signIn("google")
     }
 
+    const handleToogleStateProduct = async (productId: string, status: string) => {
+        try {
+            const response = await fetch('/api/product', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: productId,
+                    status: status === 'active' ? 'draft' : 'active'
+                })
+            })
+
+            if (!response.ok) {
+                toast.error('erro ao desativar produto ou produto inexistente')
+                return
+            }
+
+            if(status === 'active'){
+                createNotification({
+                    userId: user?.id || "",
+                    title: "Produto Desativado",
+                    message: `Você desativou o produto ${productId}`,
+                    type: "DISABLE_PRODUCT"
+                })
+            }else {
+                createNotification({
+                    userId: user?.id || "",
+                    title: "Produto Ativado",
+                    message: `Você ativou o produto ${productId}`,
+                    type: "ENABLE_PRODUCT"
+                })
+            }
+
+            toast.success('produto desativado com sucesso', {
+                action: {
+                    label: "Atualizar",
+                    onClick: () => {
+                        window.location.reload()
+                    }
+                }
+            })
+        } catch (error) {
+            console.log(error)
+            toast.error('Erro ao desativar produto')
+        }
+    }
+
     return (
         <div className="animate-fade-in">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Seus Produtos</h1>
-                <p className="text-gray-600">Gerencie todos os seus produtos em um só lugar</p>
+                <h1 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">Seus Produtos</h1>
+                <p className="text-gray-600 text-sm lg:text-md">Gerencie todos os seus produtos em um só lugar</p>
             </div>
 
             <div className="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-1 gap-6">
@@ -97,6 +143,7 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                                     group overflow-hidden bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 
                                     transition-all duration-300 hover:shadow-xl hover:-translate-y-1 p-0 pb-3
                                     ${deletingProduct.includes(product.id) ? "opacity-50 pointer-events-none scale-95" : ""}
+                                    ${product.status === 'active' ? '' : 'border-yellow-600/40'}
                                 `}
                             >
                                 <div className="relative">
@@ -125,8 +172,7 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem>Editar</DropdownMenuItem>
-                                                <DropdownMenuItem>Duplicar</DropdownMenuItem>
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleToogleStateProduct(product.id, product.status)}>{product.status === 'active' ? "Desativar" : "Ativar"}</DropdownMenuItem>
                                                 <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => handleDeleteProduct(product.id, product.name)}>Excluir</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -136,7 +182,7 @@ export default function ProductsPageComponent({ products }: ProductsPageProps) {
                                             className={`px-2 py-1 text-xs font-medium rounded-full ${product.status === 'active' ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                                                 }`}
                                         >
-                                            {product.status}
+                                            {product.status === 'active' ? "Ativo" : "Rascunho"}
                                         </span>
                                     </div>
                                 </div>

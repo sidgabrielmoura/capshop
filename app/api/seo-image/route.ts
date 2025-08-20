@@ -6,8 +6,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    if (!body.imageUrl) {
+    if (!body.imageUrl || !body.userId || body.userAmount === undefined) {
       return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
+    }
+
+    if (body.userAmount < 5) {
+      return NextResponse.json({ error: "Você não possui saldo suficiente para gerar SEO." }, { status: 403 });
     }
 
     let imageUrlFinal = "";
@@ -16,19 +20,20 @@ export async function POST(req: Request) {
         folder: "produtos-ai",
       });
       imageUrlFinal = uploaded.secure_url;
+    } else {
+      imageUrlFinal = body.imageUrl;
     }
 
     const prompt = `
     Você é um especialista em SEO para e-commerce.
     Crie um **título e uma descrição** para o produto da imagem.
-    - O título deve ter até 100 caracteres, ser chamativo e incluir palavras-chave relevantes com clareza e firmeza, passando confiança e credibilidade.
-    - A descrição deve ter até 250 caracteres, detalhando benefícios ou características do produto e incentivando o clique.
+    - O título deve ter até 100 caracteres, ser chamativo e incluir palavras-chave relevantes.
+    - A descrição deve ter até 250 caracteres, detalhando benefícios e incentivando o clique.
     - Retorne **apenas JSON válido** neste formato:
     {
       "title": "texto",
       "description": "texto"
     }
-    Não mencione outros produtos ou informações irrelevantes.
     `;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -52,33 +57,35 @@ export async function POST(req: Request) {
       })
     });
 
-    const data = await response.json();
-    const resultText = data.choices?.[0]?.message?.content || ""
-
-    const decrementAmount = async () => {
-      const coins = await db.coins.update({
-        where: { userId: body.userId },
-        data: {
-          amount: { decrement: 5 },
-          updatedAt: new Date(),
-        },
-      })
-
-      return NextResponse.json({ success: true, coins }, { status: 200 });
+    if (!response.ok) {
+      return NextResponse.json({ error: "Erro ao chamar modelo de IA" }, { status: 500 });
     }
 
-    decrementAmount()
+    const data = await response.json();
+    const resultText = data.choices?.[0]?.message?.content || "";
 
     const match = resultText.match(/\{.*"title".*"description".*\}/s);
     let parsedResult = { title: "", description: "" };
     if (match) {
-      try { parsedResult = JSON.parse(match[0]); } catch { }
+      try {
+        parsedResult = JSON.parse(match[0]);
+      } catch (err) {
+        console.error("Erro ao parsear JSON da IA:", err);
+      }
     }
 
-    return NextResponse.json({ result: parsedResult });
+    const coins = await db.coins.update({
+      where: { userId: body.userId },
+      data: {
+        amount: { decrement: 5 },
+        updatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({ success: true, result: parsedResult, coins });
 
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Erro ao gerar conteúdo" }, { status: 500 });
+    return NextResponse.json({ error: "Erro interno ao gerar conteúdo" }, { status: 500 });
   }
 }

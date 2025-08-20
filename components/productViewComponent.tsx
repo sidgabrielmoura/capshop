@@ -21,6 +21,8 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { GeneratedContent, Product, Image as Images } from "@/lib/generated/prisma"
+import { createNotification } from "@/actions"
+import { useSession } from "next-auth/react"
 
 interface ProductWithRelations extends Product {
     images: Images[];
@@ -32,6 +34,7 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
     const [isFavorite, setIsFavorite] = useState(false)
     const [loading, setLoading] = useState(false)
     const [productData, setProductData] = useState<ProductWithRelations | null>(null)
+    const user = useSession().data?.user
 
     const discount = productData && Math.round(((productData?.originPrice - productData?.price) / productData?.originPrice) * 100)
 
@@ -49,7 +52,7 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
         route.push(path)
     }
 
-    
+
     const id = productId
     const route = useRouter()
     useEffect(() => {
@@ -101,13 +104,60 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
         }
     }
 
+    const handleToogleStateProduct = async (productId: string, status: string) => {
+        try {
+            const response = await fetch('/api/product', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: productId,
+                    status: status === 'active' ? 'draft' : 'active'
+                })
+            })
+
+            if (!response.ok) {
+                toast.error('erro ao desativar produto ou produto inexistente')
+                return
+            }
+
+            if(status === 'active'){
+                createNotification({
+                    userId: user?.id || "",
+                    title: "Produto Desativado",
+                    message: `Você desativou o produto ${productId}`,
+                    type: "DISABLE_PRODUCT"
+                })
+            }else {
+                createNotification({
+                    userId: user?.id || "",
+                    title: "Produto Ativado",
+                    message: `Você ativou o produto ${productId}`,
+                    type: "ENABLE_PRODUCT"
+                })
+            }
+
+            toast.success(`Produto ${status === 'active' ? 'desativado' : 'ativado'} com sucesso`, {
+                action: {
+                    label: "Atualizar",
+                    onClick: () => {
+                        window.location.reload()
+                    }
+                }
+            })
+            route.push('/')
+        } catch (error) {
+            console.log(error)
+            toast.error('Erro ao desativar produto')
+        }
+    }
+
     return (
         <div className="max-w-7xl mx-auto animate-fade-in">
             {/* Breadcrumb */}
             {productData && !loading && (
                 <>
                     <div className="mb-6">
-                        <Link href="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-4">
+                        <Link href="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-4 text-sm lg:text-md">
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Voltar aos produtos
                         </Link>
@@ -270,9 +320,9 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                             {/* Actions */}
                             <div className="space-y-3 flex gap-2">
                                 <div className="grid grid-cols-2 gap-3 w-full">
-                                    <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+                                    <Button onClick={() => handleToogleStateProduct(productData.id, productData.status)} className="cursor-pointer bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
                                         <Edit className="w-4 h-4 mr-2" />
-                                        Editar Produto
+                                        {productData.status === 'active' ? 'Desativar Produto' : 'Ativar Produto'}
                                     </Button>
                                     <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 bg-white/50">
                                         <ExternalLink className="w-4 h-4 mr-2" />
