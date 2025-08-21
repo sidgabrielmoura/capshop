@@ -120,14 +120,14 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                 return
             }
 
-            if(status === 'active'){
+            if (status === 'active') {
                 createNotification({
                     userId: user?.id || "",
                     title: "Produto Desativado",
                     message: `Você desativou o produto ${productId}`,
                     type: "DISABLE_PRODUCT"
                 })
-            }else {
+            } else {
                 createNotification({
                     userId: user?.id || "",
                     title: "Produto Ativado",
@@ -149,6 +149,21 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
             console.log(error)
             toast.error('Erro ao desativar produto')
         }
+    }
+
+    const toggleFavorite = (productId: string) => {
+        const storedFavorites = localStorage.getItem("favorites")
+        let updatedFavorites: string[] = storedFavorites ? JSON.parse(storedFavorites) : []
+
+        if (!updatedFavorites.includes(productId)) {
+            updatedFavorites.push(productId)
+            setIsFavorite(true) // marca como favorito
+        } else {
+            updatedFavorites = updatedFavorites.filter((id) => id !== productId)
+            setIsFavorite(false) // remove dos favoritos
+        }
+
+        localStorage.setItem("favorites", JSON.stringify(updatedFavorites))
     }
 
     return (
@@ -221,7 +236,7 @@ export default function ProductDetailsComponent({ productId }: { productId: stri
                                             size="icon"
                                             variant="secondary"
                                             className="w-10 h-10 bg-white/90 hover:bg-white shadow-lg"
-                                            onClick={() => setIsFavorite(!isFavorite)}
+                                            onClick={() => toggleFavorite(productData.id)}
                                         >
                                             <Heart className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
                                         </Button>

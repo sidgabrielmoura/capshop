@@ -35,106 +35,69 @@ export function Sidebar() {
   }
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Capshop
-        </h1>
+    <>
+      {useSession().status === "loading" ? (
+        <div className="flex flex-col h-full animate-pulse">
+          {/* Logo + Pro Icon */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="h-6 w-24 bg-gray-300 rounded"></div>
+            <div className="h-5 w-5 bg-gray-300 rounded"></div>
+          </div>
 
-        {user?.subscription?.plan.name === "Pro" && <Sparkles className="w-5 h-5 text-amber-700 mr-2" />}
-      </div>
+          {/* Botão Novo Produto */}
+          <div className="mb-8">
+            <div className="h-10 w-full bg-gray-300 rounded"></div>
+          </div>
 
-      <div className="mb-8">
-        {user ? (
-          <Link href="/registerProduct" onClick={() => setIsMobileOpen(false)}>
-            <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Produto
-            </Button>
-          </Link>
-        ) : (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Produto
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md w-full">
-              <DialogHeader>
-                <DialogTitle className="text-center text-2xl font-bold">Bem-vindo</DialogTitle>
-                <DialogDescription className="text-center text-gray-500">
-                  Faça login para continuar usando a plataforma
-                </DialogDescription>
-              </DialogHeader>
-
-              <Button
-                onClick={handleLogin}
-                variant="outline"
-                className="flex items-center justify-center gap-2 border-gray-300 py-2 cursor-pointer bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-zinc-50 hover:text-zinc-50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 128 128"><path fill="currentColor" d="M44.59 4.21a63.28 63.28 0 0 0 4.33 120.9a67.6 67.6 0 0 0 32.36.35a57.13 57.13 0 0 0 25.9-13.46a57.44 57.44 0 0 0 16-26.26a74.3 74.3 0 0 0 1.61-33.58H65.27v24.69h34.47a29.72 29.72 0 0 1-12.66 19.52a36.2 36.2 0 0 1-13.93 5.5a41.3 41.3 0 0 1-15.1 0A37.2 37.2 0 0 1 44 95.74a39.3 39.3 0 0 1-14.5-19.42a38.3 38.3 0 0 1 0-24.63a39.25 39.25 0 0 1 9.18-14.91A37.17 37.17 0 0 1 76.13 27a34.3 34.3 0 0 1 13.64 8q5.83-5.8 11.64-11.63c2-2.09 4.18-4.08 6.15-6.22A61.2 61.2 0 0 0 87.2 4.59a64 64 0 0 0-42.61-.38" /></svg>
-                Entrar com Google
-              </Button>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-
-      <nav className="flex-1">
-        <ul className="space-y-2">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={cn(
-                    "flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
-                    isActive
-                      ? "bg-white/30 text-purple-700 shadow-sm"
-                      : "text-gray-700 hover:bg-white/20 hover:text-purple-600",
-                  )}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.name}
-                </Link>
+          {/* Navegação */}
+          <nav className="flex-1">
+            <ul className="space-y-2">
+              <li>
+                <div className="flex items-center px-4 py-3">
+                  <div className="h-5 w-5 bg-gray-300 rounded mr-3"></div>
+                  <div className="h-4 w-24 bg-gray-300 rounded"></div>
+                </div>
               </li>
-            )
-          })}
-        </ul>
-      </nav>
+            </ul>
+          </nav>
 
-      {user?.subscription?.plan.name !== "Pro" ? (
-        <div className="mt-auto">
-          <div className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl">
-            <div className="flex items-center mb-2">
-              <Sparkles className="w-4 h-4 text-purple-600 mr-2" />
-              <span className="text-sm font-medium text-purple-700">IA Premium</span>
+          {/* IA Premium (condicional) */}
+          <div className="mt-auto">
+            <div className="p-4 bg-gray-200 rounded-xl">
+              <div className="flex items-center mb-2">
+                <div className="h-4 w-4 bg-gray-300 rounded mr-2"></div>
+                <div className="h-3 w-20 bg-gray-300 rounded"></div>
+              </div>
+              <div className="h-3 w-40 bg-gray-300 rounded mb-3"></div>
+              <div className="h-8 w-full bg-gray-300 rounded"></div>
             </div>
-            <p className="text-xs text-gray-600 mb-3">Gere títulos e descrições automaticamente</p>
+          </div>
+        </div>
+      ) : (
+
+        <div className="flex flex-col h-full">
+          <div className="mb-8 flex items-center justify-between">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Capshop
+            </h1>
+
+            {user?.subscription?.plan.name === "Pro" && <Sparkles className="w-5 h-5 text-amber-700 mr-2" />}
+          </div>
+
+          <div className="mb-8">
             {user ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setIsPricingOpen(true)
-                  setIsMobileOpen(false)
-                }}
-                className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
-              >
-                Fazer Upgrade
-              </Button>
+              <Link href="/registerProduct" onClick={() => setIsMobileOpen(false)}>
+                <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Produto
+                </Button>
+              </Link>
             ) : (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
-                  >
-                    Fazer Upgrade
+                  <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Produto
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md w-full">
@@ -157,19 +120,98 @@ export function Sidebar() {
               </Dialog>
             )}
           </div>
-        </div>
-      ) : (
-        <div className="mt-auto">
-          <div className="p-4 bg-gradient-to-r from-amber-200/80 to-orange-300/60 rounded-xl">
-            <div className="flex items-center mb-2">
-              <Sparkles className="w-4 h-4 text-amber-700 mr-2" />
-              <span className="text-sm font-medium text-amber-700">IA Premium</span>
+
+          <nav className="flex-1">
+            <ul className="space-y-2">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setIsMobileOpen(false)}
+                      className={cn(
+                        "flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
+                        isActive
+                          ? "bg-white/30 text-purple-700 shadow-sm"
+                          : "text-gray-700 hover:bg-white/20 hover:text-purple-600",
+                      )}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {item.name}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
+
+          {user?.subscription?.plan.name !== "Pro" ? (
+            <div className="mt-auto">
+              <div className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl">
+                <div className="flex items-center mb-2">
+                  <Sparkles className="w-4 h-4 text-purple-600 mr-2" />
+                  <span className="text-sm font-medium text-purple-700">IA Premium</span>
+                </div>
+                <p className="text-xs text-gray-600 mb-3">Gere títulos e descrições automaticamente</p>
+                {user ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIsPricingOpen(true)
+                      setIsMobileOpen(false)
+                    }}
+                    className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
+                  >
+                    Fazer Upgrade
+                  </Button>
+                ) : (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 bg-transparent"
+                      >
+                        Fazer Upgrade
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md w-full">
+                      <DialogHeader>
+                        <DialogTitle className="text-center text-2xl font-bold">Bem-vindo</DialogTitle>
+                        <DialogDescription className="text-center text-gray-500">
+                          Faça login para continuar usando a plataforma
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <Button
+                        onClick={handleLogin}
+                        variant="outline"
+                        className="flex items-center justify-center gap-2 border-gray-300 py-2 cursor-pointer bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-zinc-50 hover:text-zinc-50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 128 128"><path fill="currentColor" d="M44.59 4.21a63.28 63.28 0 0 0 4.33 120.9a67.6 67.6 0 0 0 32.36.35a57.13 57.13 0 0 0 25.9-13.46a57.44 57.44 0 0 0 16-26.26a74.3 74.3 0 0 0 1.61-33.58H65.27v24.69h34.47a29.72 29.72 0 0 1-12.66 19.52a36.2 36.2 0 0 1-13.93 5.5a41.3 41.3 0 0 1-15.1 0A37.2 37.2 0 0 1 44 95.74a39.3 39.3 0 0 1-14.5-19.42a38.3 38.3 0 0 1 0-24.63a39.25 39.25 0 0 1 9.18-14.91A37.17 37.17 0 0 1 76.13 27a34.3 34.3 0 0 1 13.64 8q5.83-5.8 11.64-11.63c2-2.09 4.18-4.08 6.15-6.22A61.2 61.2 0 0 0 87.2 4.59a64 64 0 0 0-42.61-.38" /></svg>
+                        Entrar com Google
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-zinc-800 mb-3">Gere títulos e descrições automaticamente</p>
-          </div>
+          ) : (
+            <div className="mt-auto">
+              <div className="p-4 bg-gradient-to-r from-amber-200/80 to-orange-300/60 rounded-xl">
+                <div className="flex items-center mb-2">
+                  <Sparkles className="w-4 h-4 text-amber-700 mr-2" />
+                  <span className="text-sm font-medium text-amber-700">IA Premium</span>
+                </div>
+                <p className="text-xs text-zinc-800 mb-3">Gere títulos e descrições automaticamente</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </>
   )
 
   return (
